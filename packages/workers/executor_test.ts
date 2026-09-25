@@ -1528,6 +1528,24 @@ class FakeWorker {
   }
 }
 
+Deno.test('WorkerExecutor: rejects registering one Worker instance for two plugins', async () => {
+  const executor = new WorkerExecutor();
+  const shared = new FakeWorker();
+  const first = createRegisteredPlugin('first', shared.asWorker());
+  const second = createRegisteredPlugin('second', shared.asWorker());
+
+  try {
+    await executor.initPlugin(first);
+    await assertRejects(
+      () => executor.initPlugin(second),
+      Error,
+      'already registered for plugin "first"',
+    );
+  } finally {
+    executor.terminate();
+  }
+});
+
 Deno.test('WorkerExecutor: ignores a response posted by a different Worker than the request was sent to', async () => {
   const errors: Array<{ error: Error; context: PluginErrorContext }> = [];
   const executor = new WorkerExecutor((error, context) => {
@@ -1581,18 +1599,53 @@ Deno.test('WorkerExecutor: ignores a response posted by a different Worker than 
   }
 });
 
-Deno.test('WorkerExecutor: ignores malformed Worker messages', async () => {
-  const executor = new WorkerExecutor();
+Deno.test('WorkerExecutor: ignores malformed Worker messages and keeps the request pending', async () => {
+  const errors: Array<{ error: Error; context: PluginErrorContext }> = [];
+  const executor = new WorkerExecutor((error, context) => {
+    errors.push({ error, context });
+  });
   const worker = new FakeWorker();
   const plugin = createRegisteredPlugin('echo', worker.asWorker());
 
   try {
     await executor.initPlugin(plugin);
-    // None of these should throw or settle anything.
-    worker.reply(null);
-    worker.reply('string');
-    worker.reply({ success: true });
-    worker.reply({ id: 42, success: true });
+
+    const ctx = { table: 'test', action: 'create' as const };
+    let settled = false;
+    const pending = executor
+      .executeBeforeSave([plugin], ctx, { marker: 'x' })
+      .finally(() => {
+        settled = true;
+      });
+    const request = worker.sent.find((m) => m.type === 'transform:beforeSave');
+    assert(request, 'worker should have received a beforeSave request');
+
+    // Garbage of every shape: none may throw, settle the request, or be
+    // silently dropped (each is reported through onError). The last three
+    // carry the real request id, so only the `success` check stops them.
+    const garbage = [
+      null,
+      'string',
+      { success: true },
+      { id: 42, success: true },
+      { id: request.id, success: 'true', result: { marker: 'forged' } },
+      { id: request.id, success: 1 },
+      { id: request.id },
+    ];
+    for (const message of garbage) {
+      worker.reply(message);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assertEquals(settled, false, 'malformed messages must not settle');
+    assertEquals(errors.length, garbage.length);
+    for (const { context } of errors) {
+      assertEquals(context.plugin, 'echo');
+      assertEquals(context.operation, 'message');
+    }
+
+    // A well-formed reply still works afterwards.
+    worker.reply({ id: request.id, success: true, result: { marker: 'y' } });
+    assertEquals(await pending, { marker: 'y' });
   } finally {
     executor.terminate();
   }

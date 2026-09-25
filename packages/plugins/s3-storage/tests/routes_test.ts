@@ -500,9 +500,9 @@ Deno.test('presign validation: uppercase extension is validated', () => {
   assertEquals(result, null);
 });
 
-/** Storage provider off a plugin built with the standard test options. */
-function makeProvider(extra: Record<string, unknown> = {}) {
-  const plugin = createS3StoragePlugin({
+/** Plugin built with the standard test options. */
+function makePlugin(extra: Record<string, unknown> = {}) {
+  return createS3StoragePlugin({
     endpoint: 'http://localhost:9000',
     region: 'us-east-1',
     bucket: 'test-bucket',
@@ -512,7 +512,11 @@ function makeProvider(extra: Record<string, unknown> = {}) {
     basePath: '/admin',
     ...extra,
   });
-  return plugin.storageProvider!;
+}
+
+/** Storage provider off a plugin built with the standard test options. */
+function makeProvider(extra: Record<string, unknown> = {}) {
+  return makePlugin(extra).storageProvider!;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -764,18 +768,6 @@ function findRoute(plugin: any, pattern: string, method: string) {
     (r: any) =>
       r.pattern === pattern && (r.methods ?? ['GET']).includes(method),
   );
-}
-
-function makePlugin() {
-  return createS3StoragePlugin({
-    endpoint: 'http://localhost:9000',
-    region: 'us-east-1',
-    bucket: 'test-bucket',
-    accessKeyId: 'test-key',
-    secretAccessKey: 'test-secret',
-    urlStyle: 'path',
-    basePath: '/admin',
-  });
 }
 
 Deno.test('routes: presign 404s when the column is not a file field', async () => {
