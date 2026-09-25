@@ -19,7 +19,7 @@ Deno.test('introspectTable - extracts table name', () => {
 Deno.test('introspectTable - extracts all columns', () => {
   const result = introspectTable(schema.users);
 
-  const columnNames = result.columns.map((c) => c.name);
+  const columnNames = result.columns.map((c) => c.dbName);
   assertEquals(columnNames.includes('id'), true);
   assertEquals(columnNames.includes('email'), true);
   assertEquals(columnNames.includes('name'), true);
@@ -36,7 +36,7 @@ Deno.test('introspectTable - extracts primary key', () => {
 Deno.test('introspectTable - extracts column metadata', () => {
   const result = introspectTable(schema.users);
 
-  const emailColumn = result.columns.find((c) => c.name === 'email');
+  const emailColumn = result.columns.find((c) => c.dbName === 'email');
   assertExists(emailColumn);
   assertEquals(emailColumn.columnType, 'PgVarchar');
   assertEquals(emailColumn.dataType, 'string');
@@ -49,7 +49,7 @@ Deno.test('introspectTable - extracts column metadata', () => {
 Deno.test('introspectTable - extracts nullable column', () => {
   const result = introspectTable(schema.users);
 
-  const bioColumn = result.columns.find((c) => c.name === 'bio');
+  const bioColumn = result.columns.find((c) => c.dbName === 'bio');
   assertExists(bioColumn);
   assertEquals(bioColumn.notNull, false);
   assertEquals(bioColumn.columnType, 'PgText');
@@ -58,7 +58,7 @@ Deno.test('introspectTable - extracts nullable column', () => {
 Deno.test('introspectTable - extracts column with default', () => {
   const result = introspectTable(schema.users);
 
-  const isAdminColumn = result.columns.find((c) => c.name === 'is_admin');
+  const isAdminColumn = result.columns.find((c) => c.dbName === 'is_admin');
   assertExists(isAdminColumn);
   assertEquals(isAdminColumn.hasDefault, true);
   assertEquals(isAdminColumn.notNull, true);
@@ -67,7 +67,7 @@ Deno.test('introspectTable - extracts column with default', () => {
 Deno.test('introspectTable - extracts enum column', () => {
   const result = introspectTable(schema.posts);
 
-  const statusColumn = result.columns.find((c) => c.name === 'status');
+  const statusColumn = result.columns.find((c) => c.dbName === 'status');
   assertExists(statusColumn);
   assertEquals(statusColumn.columnType, 'PgEnumColumn');
   assertEquals(statusColumn.enumName, 'post_status');
@@ -77,7 +77,7 @@ Deno.test('introspectTable - extracts enum column', () => {
 Deno.test('introspectTable - extracts foreign key reference', () => {
   const result = introspectTable(schema.posts);
 
-  const authorIdColumn = result.columns.find((c) => c.name === 'author_id');
+  const authorIdColumn = result.columns.find((c) => c.dbName === 'author_id');
   assertExists(authorIdColumn);
   assertExists(authorIdColumn.references);
   assertEquals(authorIdColumn.references.table, 'users');
@@ -87,7 +87,7 @@ Deno.test('introspectTable - extracts foreign key reference', () => {
 Deno.test('introspectTable - extracts property name (camelCase)', () => {
   const result = introspectTable(schema.users);
 
-  const isAdminColumn = result.columns.find((c) => c.name === 'is_admin');
+  const isAdminColumn = result.columns.find((c) => c.dbName === 'is_admin');
   assertExists(isAdminColumn);
   assertEquals(isAdminColumn.propertyName, 'isAdmin');
 });
@@ -95,14 +95,14 @@ Deno.test('introspectTable - extracts property name (camelCase)', () => {
 Deno.test('introspectTable - extracts timestamp columns', () => {
   const result = introspectTable(schema.posts);
 
-  const publishedAt = result.columns.find((c) => c.name === 'published_at');
+  const publishedAt = result.columns.find((c) => c.dbName === 'published_at');
   assertExists(publishedAt);
   assertEquals(publishedAt.columnType, 'PgTimestamp');
   assertEquals(publishedAt.dataType, 'date');
   assertEquals(publishedAt.notNull, false);
   assertEquals(publishedAt.hasDefault, false);
 
-  const createdAt = result.columns.find((c) => c.name === 'created_at');
+  const createdAt = result.columns.find((c) => c.dbName === 'created_at');
   assertExists(createdAt);
   assertEquals(createdAt.notNull, true);
   assertEquals(createdAt.hasDefault, true);
@@ -111,7 +111,7 @@ Deno.test('introspectTable - extracts timestamp columns', () => {
 Deno.test('introspectTable - extracts UUID column', () => {
   const result = introspectTable(schema.uploads);
 
-  const idColumn = result.columns.find((c) => c.name === 'id');
+  const idColumn = result.columns.find((c) => c.dbName === 'id');
   assertExists(idColumn);
   assertEquals(idColumn.columnType, 'PgUUID');
   assertEquals(idColumn.isPrimaryKey, true);
@@ -120,7 +120,7 @@ Deno.test('introspectTable - extracts UUID column', () => {
 Deno.test('introspectTable - extracts JSON column', () => {
   const result = introspectTable(schema.uploads);
 
-  const metadataColumn = result.columns.find((c) => c.name === 'metadata');
+  const metadataColumn = result.columns.find((c) => c.dbName === 'metadata');
   assertExists(metadataColumn);
   assertEquals(metadataColumn.columnType, 'PgJson');
 });
@@ -128,7 +128,7 @@ Deno.test('introspectTable - extracts JSON column', () => {
 Deno.test('introspectTable - extracts array column', () => {
   const result = introspectTable(schema.posts);
 
-  const tagsColumn = result.columns.find((c) => c.name === 'tags');
+  const tagsColumn = result.columns.find((c) => c.dbName === 'tags');
   assertExists(tagsColumn);
   assertEquals(tagsColumn.columnType, 'PgArray');
   assertEquals(tagsColumn.isArray, true);
@@ -139,12 +139,14 @@ Deno.test('introspectTable - extracts composite primary key', () => {
 
   // Should have both columns as primary key
   assertEquals(result.primaryKey.length, 2);
-  assertEquals(result.primaryKey.includes('post_id'), true);
-  assertEquals(result.primaryKey.includes('category_id'), true);
+  assertEquals(result.primaryKey.includes('postId'), true);
+  assertEquals(result.primaryKey.includes('categoryId'), true);
 
   // Individual columns should be marked as primary key
-  const postIdColumn = result.columns.find((c) => c.name === 'post_id');
-  const categoryIdColumn = result.columns.find((c) => c.name === 'category_id');
+  const postIdColumn = result.columns.find((c) => c.dbName === 'post_id');
+  const categoryIdColumn = result.columns.find((c) =>
+    c.dbName === 'category_id'
+  );
   assertExists(postIdColumn);
   assertExists(categoryIdColumn);
   assertEquals(postIdColumn.isPrimaryKey, true);
@@ -300,7 +302,7 @@ Deno.test('sqlite: introspectTable - extracts table name', () => {
 Deno.test('sqlite: introspectTable - extracts all columns', () => {
   const result = introspectTable(sqliteSchema.users);
 
-  const columnNames = result.columns.map((c) => c.name);
+  const columnNames = result.columns.map((c) => c.dbName);
   assertEquals(columnNames.includes('id'), true);
   assertEquals(columnNames.includes('email'), true);
   assertEquals(columnNames.includes('name'), true);
@@ -317,7 +319,7 @@ Deno.test('sqlite: introspectTable - extracts primary key', () => {
 Deno.test('sqlite: introspectTable - extracts column metadata', () => {
   const result = introspectTable(sqliteSchema.users);
 
-  const emailColumn = result.columns.find((c) => c.name === 'email');
+  const emailColumn = result.columns.find((c) => c.dbName === 'email');
   assertExists(emailColumn);
   assertEquals(emailColumn.columnType, 'SQLiteText');
   assertEquals(emailColumn.dataType, 'string');
@@ -329,7 +331,7 @@ Deno.test('sqlite: introspectTable - extracts column metadata', () => {
 Deno.test('sqlite: introspectTable - extracts nullable column', () => {
   const result = introspectTable(sqliteSchema.users);
 
-  const bioColumn = result.columns.find((c) => c.name === 'bio');
+  const bioColumn = result.columns.find((c) => c.dbName === 'bio');
   assertExists(bioColumn);
   assertEquals(bioColumn.notNull, false);
   assertEquals(bioColumn.columnType, 'SQLiteText');
@@ -338,7 +340,7 @@ Deno.test('sqlite: introspectTable - extracts nullable column', () => {
 Deno.test('sqlite: introspectTable - extracts column with default', () => {
   const result = introspectTable(sqliteSchema.users);
 
-  const isAdminColumn = result.columns.find((c) => c.name === 'is_admin');
+  const isAdminColumn = result.columns.find((c) => c.dbName === 'is_admin');
   assertExists(isAdminColumn);
   assertEquals(isAdminColumn.hasDefault, true);
   assertEquals(isAdminColumn.notNull, true);
@@ -347,7 +349,7 @@ Deno.test('sqlite: introspectTable - extracts column with default', () => {
 Deno.test('sqlite: introspectTable - extracts text enum column', () => {
   const result = introspectTable(sqliteSchema.posts);
 
-  const statusColumn = result.columns.find((c) => c.name === 'status');
+  const statusColumn = result.columns.find((c) => c.dbName === 'status');
   assertExists(statusColumn);
   assertEquals(statusColumn.columnType, 'SQLiteText');
   assertEquals(statusColumn.enumValues, ['draft', 'published', 'archived']);
@@ -356,7 +358,7 @@ Deno.test('sqlite: introspectTable - extracts text enum column', () => {
 Deno.test('sqlite: introspectTable - extracts foreign key reference', () => {
   const result = introspectTable(sqliteSchema.posts);
 
-  const authorIdColumn = result.columns.find((c) => c.name === 'author_id');
+  const authorIdColumn = result.columns.find((c) => c.dbName === 'author_id');
   assertExists(authorIdColumn);
   assertExists(authorIdColumn.references);
   assertEquals(authorIdColumn.references.table, 'users');
@@ -366,7 +368,7 @@ Deno.test('sqlite: introspectTable - extracts foreign key reference', () => {
 Deno.test('sqlite: introspectTable - extracts property name (camelCase)', () => {
   const result = introspectTable(sqliteSchema.users);
 
-  const isAdminColumn = result.columns.find((c) => c.name === 'is_admin');
+  const isAdminColumn = result.columns.find((c) => c.dbName === 'is_admin');
   assertExists(isAdminColumn);
   assertEquals(isAdminColumn.propertyName, 'isAdmin');
 });
@@ -374,13 +376,13 @@ Deno.test('sqlite: introspectTable - extracts property name (camelCase)', () => 
 Deno.test('sqlite: introspectTable - extracts timestamp columns (integer mode)', () => {
   const result = introspectTable(sqliteSchema.posts);
 
-  const publishedAt = result.columns.find((c) => c.name === 'published_at');
+  const publishedAt = result.columns.find((c) => c.dbName === 'published_at');
   assertExists(publishedAt);
   assertEquals(publishedAt.columnType, 'SQLiteTimestamp');
   assertEquals(publishedAt.dataType, 'date');
   assertEquals(publishedAt.notNull, false);
 
-  const createdAt = result.columns.find((c) => c.name === 'created_at');
+  const createdAt = result.columns.find((c) => c.dbName === 'created_at');
   assertExists(createdAt);
   assertEquals(createdAt.notNull, true);
   assertEquals(createdAt.hasDefault, true);
@@ -389,7 +391,7 @@ Deno.test('sqlite: introspectTable - extracts timestamp columns (integer mode)',
 Deno.test('sqlite: introspectTable - extracts JSON column (text mode)', () => {
   const result = introspectTable(sqliteSchema.uploads);
 
-  const metadataColumn = result.columns.find((c) => c.name === 'metadata');
+  const metadataColumn = result.columns.find((c) => c.dbName === 'metadata');
   assertExists(metadataColumn);
   // SQLite JSON is stored as text with mode: 'json'
   assertEquals(metadataColumn.columnType, 'SQLiteTextJson');
@@ -400,12 +402,14 @@ Deno.test('sqlite: introspectTable - extracts composite primary key', () => {
 
   // Should have both columns as primary key
   assertEquals(result.primaryKey.length, 2);
-  assertEquals(result.primaryKey.includes('post_id'), true);
-  assertEquals(result.primaryKey.includes('category_id'), true);
+  assertEquals(result.primaryKey.includes('postId'), true);
+  assertEquals(result.primaryKey.includes('categoryId'), true);
 
   // Individual columns should be marked as primary key
-  const postIdColumn = result.columns.find((c) => c.name === 'post_id');
-  const categoryIdColumn = result.columns.find((c) => c.name === 'category_id');
+  const postIdColumn = result.columns.find((c) => c.dbName === 'post_id');
+  const categoryIdColumn = result.columns.find((c) =>
+    c.dbName === 'category_id'
+  );
   assertExists(postIdColumn);
   assertExists(categoryIdColumn);
   assertEquals(postIdColumn.isPrimaryKey, true);

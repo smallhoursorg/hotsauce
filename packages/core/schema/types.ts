@@ -10,11 +10,23 @@ export type { AnyColumn as Column } from 'drizzle-orm';
  * Metadata extracted from a Drizzle column
  */
 export interface IntrospectedColumn {
-  /** Column name in the database (snake_case) */
-  name: string;
-
-  /** Property name in Drizzle schema (camelCase) */
+  /**
+   * Property name in the Drizzle schema (e.g. `authorId`).
+   *
+   * This is the canonical column identifier throughout the CMS: Drizzle keys
+   * records, table objects and insert/update payloads by it, and so do CMS
+   * policies, form fields, URLs, plugin contexts and storage keys.
+   */
   propertyName: string;
+
+  /**
+   * Column name in the database (e.g. `author_id`).
+   *
+   * Only needed when talking to the database by name (raw SQL, migrations,
+   * error messages that quote the physical schema). Never use it to index a
+   * record or a Drizzle table object.
+   */
+  dbName: string;
 
   /** Drizzle column type (PgVarchar, PgText, PgInteger, etc.) */
   columnType: string;
@@ -48,7 +60,9 @@ export interface IntrospectedColumn {
 
   /** Foreign key reference if this column references another table */
   references?: {
+    /** Referenced table name (database name) */
     table: string;
+    /** Referenced column (database name — Drizzle FK metadata only exposes this) */
     column: string;
   };
 
@@ -66,7 +80,7 @@ export interface IntrospectedTable {
   /** All columns in the table */
   columns: IntrospectedColumn[];
 
-  /** Primary key column name(s) */
+  /** Primary key column(s), as property names */
   primaryKey: string[];
 
   /** Reference to the original Drizzle table object */

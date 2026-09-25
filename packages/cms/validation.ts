@@ -245,7 +245,7 @@ export function validateFileColumnsAndConfigs(
         name: string;
         columns: Array<
           {
-            name: string;
+            propertyName: string;
             dataType: string;
             cmsOptions?: {
               file?: boolean | {
@@ -269,7 +269,7 @@ export function validateFileColumnsAndConfigs(
 
       if (column.dataType !== 'json') {
         errors.push(
-          `  - ${table.name}.${column.name}: { file: ... } requires a JSON column (jsonb/json), ` +
+          `  - ${table.name}.${column.propertyName}: { file: ... } requires a JSON column (jsonb/json), ` +
             `but column has dataType '${column.dataType}'. ` +
             `Use jsonb() (Postgres), json() (MySQL), or text({ mode: 'json' }) (SQLite).`,
         );
@@ -279,19 +279,19 @@ export function validateFileColumnsAndConfigs(
         const { accept, maxSize, previewSvg } = fileConfig;
         if (accept !== undefined && typeof accept !== 'string') {
           errors.push(
-            `  - ${table.name}.${column.name}: file.accept must be a string when provided.`,
+            `  - ${table.name}.${column.propertyName}: file.accept must be a string when provided.`,
           );
         }
         if (maxSize !== undefined) {
           if (typeof maxSize !== 'number' || maxSize < 0) {
             errors.push(
-              `  - ${table.name}.${column.name}: file.maxSize must be a non-negative number when provided.`,
+              `  - ${table.name}.${column.propertyName}: file.maxSize must be a non-negative number when provided.`,
             );
           }
         }
         if (previewSvg !== undefined && typeof previewSvg !== 'boolean') {
           errors.push(
-            `  - ${table.name}.${column.name}: file.previewSvg must be a boolean when provided.`,
+            `  - ${table.name}.${column.propertyName}: file.previewSvg must be a boolean when provided.`,
           );
         }
       }
@@ -322,7 +322,7 @@ export function validateAutoDraft(
         cmsOptions?: { autoDraft?: boolean };
         columns: Array<
           {
-            name: string;
+            propertyName: string;
             isPrimaryKey: boolean;
             hasDefault: boolean;
             notNull: boolean;
@@ -345,7 +345,7 @@ export function validateAutoDraft(
     });
 
     if (blocking.length > 0) {
-      const cols = blocking.map((c) => c.name).join(', ');
+      const cols = blocking.map((c) => c.propertyName).join(', ');
       errors.push(
         `  - ${table.name}: autoDraft requires all non-PK columns to have defaults or be nullable. ` +
           `Blocking column(s): ${cols}. ` +
@@ -425,7 +425,7 @@ export function validateThumbnailColumns(
         name: string;
         columns: Array<
           {
-            name: string;
+            propertyName: string;
             cmsOptions?: {
               thumbnail?: boolean;
             };
@@ -440,7 +440,7 @@ export function validateThumbnailColumns(
   for (const table of introspected.tables) {
     const thumbnailCols = table.columns.filter((c) => c.cmsOptions?.thumbnail);
     if (thumbnailCols.length > 1) {
-      const colNames = thumbnailCols.map((c) => c.name).join(', ');
+      const colNames = thumbnailCols.map((c) => c.propertyName).join(', ');
       errors.push(
         `  - ${table.name}: multiple thumbnail columns found (${colNames}). ` +
           `Only one column per table may have thumbnail: true.`,

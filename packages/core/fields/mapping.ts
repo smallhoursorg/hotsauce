@@ -50,14 +50,45 @@ export interface CMSField {
 }
 
 /**
- * Convert property name to human-readable label
- * e.g., "authorId" -> "Author Id", "createdAt" -> "Created At"
+ * Convert a property name to a human-readable label. Handles camelCase and
+ * snake_case, since property names may follow either convention.
+ * e.g., "authorId" -> "Author Id", "created_at" -> "Created At"
  */
 export function propertyNameToLabel(propertyName: string): string {
-  return propertyName
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (s) => s.toUpperCase())
-    .trim();
+  // Single pass: this runs once per column per form/list render, so it is
+  // kept allocation-light rather than chaining several regex replaces.
+  let out = '';
+  let atWordStart = true;
+  for (let i = 0; i < propertyName.length; i++) {
+    const ch = propertyName[i]!;
+    if (ch === '_' || ch === ' ') {
+      if (!atWordStart) out += ' ';
+      atWordStart = true;
+      continue;
+    }
+    const isUpper = ch >= 'A' && ch <= 'Z';
+    if (isUpper && !atWordStart) out += ' ';
+    out += atWordStart ? ch.toUpperCase() : ch;
+    atWordStart = false;
+  }
+  return out.trimEnd();
+}
+
+const AUDIT_TIMESTAMP_NAMES = new Set([
+  'created_at',
+  'createdAt',
+  'updated_at',
+  'updatedAt',
+]);
+
+/**
+ * Whether a column is a conventional audit timestamp (`createdAt` /
+ * `updatedAt`, in either camelCase or snake_case form). These are treated as
+ * database-managed: read-only in forms and never written from user input.
+ */
+export function isAuditTimestampColumn(column: IntrospectedColumn): boolean {
+  return AUDIT_TIMESTAMP_NAMES.has(column.propertyName) ||
+    AUDIT_TIMESTAMP_NAMES.has(column.dbName);
 }
 
 /**
@@ -176,7 +207,7 @@ export function mapColumnToField(column: IntrospectedColumn): CMSField {
   }
 
   // Common timestamp fields should be read-only
-  if (column.name === 'created_at' || column.name === 'updated_at') {
+  if (isAuditTimestampColumn(column)) {
     field.readOnly = true;
   }
 

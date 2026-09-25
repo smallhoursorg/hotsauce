@@ -241,3 +241,37 @@ Deno.test('getColumnPluginSources: returns empty for read-only plugin access', (
   const sources = getColumnPluginSources(testSchema, 'drafts', 'content');
   assertEquals(sources, []);
 });
+
+// ─────────────────────────────────────────────────────────────
+// Column policy keys use the Drizzle property name
+// ─────────────────────────────────────────────────────────────
+
+Deno.test('policiesFromSchema: keys column policies by property name, not DB name', async () => {
+  const layouts = pgTable('layouts', {
+    id: serial('id').primaryKey(),
+    // Property name (pageContent) differs from the DB column name (page_content)
+    // deno-lint-ignore no-explicit-any
+    pageContent: (json('page_content') as any).$cms({
+      plugins: { puck: true },
+    }),
+  });
+
+  const policies = policiesFromSchema({ layouts });
+  const policy = policies.layouts as TablePolicy;
+
+  assertEquals(
+    Object.keys(policy.columns ?? {}),
+    ['pageContent'],
+    'evaluateColumnPolicies looks policies up by propertyName, so the generated key must match',
+  );
+
+  const write = policy.columns?.pageContent?.write;
+  if (!write) throw new Error('expected a write policy for pageContent');
+  const ctx = (source: string): PolicyContext => ({
+    user: undefined,
+    request: new Request('http://localhost/admin'),
+    source,
+  });
+  assertEquals(await write(ctx('plugin:puck')), true);
+  assertEquals(await write(ctx('cms')), false);
+});

@@ -28,7 +28,7 @@ export interface ResolveStorageContext {
   user: { sub: string; role?: string; [key: string]: unknown } | null;
   /** Table name being operated on */
   table: string;
-  /** Column name for the file field */
+  /** File column, as its Drizzle property name (e.g. `coverImage`) */
   column: string;
   /** Action being performed */
   action: 'create' | 'update';

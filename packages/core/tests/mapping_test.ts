@@ -3,6 +3,7 @@
 import { assertEquals } from '@std/assert';
 import {
   getThumbnailField,
+  isAuditTimestampColumn,
   mapColumnsToFields,
   mapColumnToField,
   mapColumnToFieldType,
@@ -15,7 +16,7 @@ function createMockColumn(
   overrides: Partial<IntrospectedColumn>,
 ): IntrospectedColumn {
   return {
-    name: 'test_column',
+    dbName: 'test_column',
     propertyName: 'testColumn',
     dataType: 'string',
     columnType: 'PgVarchar',
@@ -29,6 +30,12 @@ function createMockColumn(
 }
 
 // propertyNameToLabel tests
+Deno.test('propertyNameToLabel: converts snake_case property names too', () => {
+  assertEquals(propertyNameToLabel('created_at'), 'Created At');
+  assertEquals(propertyNameToLabel('sort_order'), 'Sort Order');
+  assertEquals(propertyNameToLabel('id'), 'Id');
+});
+
 Deno.test('propertyNameToLabel: converts camelCase to Title Case', () => {
   assertEquals(propertyNameToLabel('authorId'), 'Author Id');
   assertEquals(propertyNameToLabel('createdAt'), 'Created At');
@@ -190,7 +197,7 @@ Deno.test('mapColumnToFieldType: unknown dataType defaults to text', () => {
 // mapColumnToField tests
 Deno.test('mapColumnToField: creates CMSField with correct properties', () => {
   const column = createMockColumn({
-    name: 'first_name',
+    dbName: 'first_name',
     propertyName: 'firstName',
     dataType: 'string',
   });
@@ -206,7 +213,7 @@ Deno.test('mapColumnToField: creates CMSField with correct properties', () => {
 
 Deno.test('mapColumnToField: hides primary key fields', () => {
   const column = createMockColumn({
-    name: 'id',
+    dbName: 'id',
     propertyName: 'id',
     dataType: 'number',
     isPrimaryKey: true,
@@ -220,19 +227,43 @@ Deno.test('mapColumnToField: hides primary key fields', () => {
 
 Deno.test('mapColumnToField: marks timestamp fields as read-only', () => {
   const createdAt = createMockColumn({
-    name: 'created_at',
+    dbName: 'created_at',
     propertyName: 'createdAt',
     dataType: 'date',
   });
 
   const updatedAt = createMockColumn({
-    name: 'updated_at',
+    dbName: 'updated_at',
     propertyName: 'updatedAt',
     dataType: 'date',
   });
 
   assertEquals(mapColumnToField(createdAt).readOnly, true);
   assertEquals(mapColumnToField(updatedAt).readOnly, true);
+});
+
+Deno.test('isAuditTimestampColumn: matches on either the property name or the DB name', () => {
+  // Property name is conventional, DB name is not
+  assertEquals(
+    isAuditTimestampColumn(
+      createMockColumn({ propertyName: 'createdAt', dbName: 'creation_ts' }),
+    ),
+    true,
+  );
+  // DB name is conventional, property name is not
+  assertEquals(
+    isAuditTimestampColumn(
+      createMockColumn({ propertyName: 'created', dbName: 'created_at' }),
+    ),
+    true,
+  );
+  // Neither
+  assertEquals(
+    isAuditTimestampColumn(
+      createMockColumn({ propertyName: 'publishedAt', dbName: 'published_at' }),
+    ),
+    false,
+  );
 });
 
 Deno.test('mapColumnToField: adds placeholder for text fields with maxLength', () => {

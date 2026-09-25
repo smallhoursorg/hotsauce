@@ -12,7 +12,7 @@ function createMockField(
 ): CMSField {
   const { column: columnOverrides, ...rest } = overrides;
   const column: IntrospectedColumn = {
-    name: 'test_field',
+    dbName: 'test_field',
     propertyName: 'testField',
     dataType: 'string',
     columnType: 'PgVarchar',

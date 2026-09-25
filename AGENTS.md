@@ -77,6 +77,25 @@ Some features require external packages that users install only if needed:
   - Live in database-specific modules or be feature-detected
   - Degrade gracefully when not available
 
+### Column Identifiers: Property Name Is Canonical
+
+Every introspected column has two names: `propertyName` (the key in the Drizzle
+table definition, e.g. `authorId`) and `dbName` (the physical column, e.g.
+`author_id`). **`propertyName` is the one identifier the CMS uses everywhere**:
+
+- Drizzle keys records, table objects and insert/update payloads by it
+- Column policies, `readableColumns` / `writableColumns`, policy `defaults`
+- Form field names, `?sort=` params, `/files/{table}/{column}/{id}` URLs,
+  plugin route `:column` params, `data-picker-column`
+- Plugin contexts (`ctx.columns`, `field.name`) and storage key prefixes
+
+Reach for `dbName` only when talking to the database by name (raw SQL,
+migrations, messages that quote the physical schema). Never index a record or a
+Drizzle table object with it. Most fixtures use identical names for both, which
+hides mistakes; `packages/cms/tests/integration_mixed_names_test.ts` is the
+regression fixture where every column's names differ — extend it when adding a
+code path that identifies columns.
+
 ### Drizzle ORM Helper Functions
 
 - **Use exported helper functions** instead of direct symbol/property access

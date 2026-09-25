@@ -302,6 +302,7 @@ Deno.test('integration: picker mode tests', async (t) => {
 
       // Should include photoId and image in data-picker-record (HTML-escaped quotes)
       assertStringIncludes(html, '&quot;photoId&quot;:1');
+      assertStringIncludes(html, 'data-picker-pk="photoId"');
       assertStringIncludes(html, '&quot;filename&quot;:&quot;sunset.jpg&quot;');
 
       // Should NOT include other columns

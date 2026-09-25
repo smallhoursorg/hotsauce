@@ -39,7 +39,8 @@ import {
   redirectWithFlash,
   wantsJson,
 } from './http.ts';
-import { cmsUrl, formatColumnName, formatTableName } from './router.ts';
+import { cmsUrl, formatTableName } from './router.ts';
+import { propertyNameToLabel } from '@hotsauce/core';
 import type {
   BreadcrumbItem,
   CellOverrides,
@@ -138,7 +139,7 @@ async function deleteOldFileObjects(
   recordId: string | number,
   oldRecord: Record<string, unknown>,
   newValues: Record<string, unknown>,
-  fileColumns: Array<{ propertyName: string; name: string }>,
+  fileColumns: Array<{ propertyName: string }>,
   request: Request,
   authUser: { id: string; role?: string } | undefined,
   onError?: (error: Error) => void,
@@ -168,8 +169,14 @@ async function deleteOldFileObjects(
     if (oldValue.key) {
       // Defense-in-depth: validate key belongs to this table/column/record
       // Skip deletion if key is invalid (prevents deleting arbitrary keys if DB tampered)
-      if (!isValidFileKey(oldValue.key, tableName, col.name, recordId)) {
-        const expectedPrefix = getFileKeyPrefix(tableName, col.name, recordId);
+      if (
+        !isValidFileKey(oldValue.key, tableName, col.propertyName, recordId)
+      ) {
+        const expectedPrefix = getFileKeyPrefix(
+          tableName,
+          col.propertyName,
+          recordId,
+        );
         onError?.(
           new Error(
             `Skipping deletion of invalid key: ${oldValue.key} (expected prefix: ${expectedPrefix})`,
@@ -216,7 +223,7 @@ async function cleanupOrphanFileObjects(
   recordId: string | number,
   oldRecord: Record<string, unknown>,
   currentValues: Record<string, unknown>,
-  fileColumns: Array<{ propertyName: string; name: string }>,
+  fileColumns: Array<{ propertyName: string }>,
   request: Request,
   authUser: { id: string; role?: string } | undefined,
   onError?: (error: Error) => void,
@@ -246,7 +253,7 @@ async function cleanupOrphanFileObjects(
     const deleteObject = provider.deleteObject;
     if (!deleteObject) continue;
 
-    const prefix = getFileKeyPrefix(tableName, col.name, recordId);
+    const prefix = getFileKeyPrefix(tableName, col.propertyName, recordId);
     const currentKey = curValue.key;
 
     try {
@@ -646,8 +653,9 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
 
   // Get pagination and sort
   const { page, limit, offset } = getPagination(url);
-  const columnNames = table.columns.map((c) => c.name);
-  const sortInfo = getSort(url, columnNames);
+  // Only readable columns may be sorted on: ordering by a policy-hidden
+  // column would leak its relative values even though it is never rendered.
+  const sortInfo = getSort(url, columnResult.readableColumns);
 
   // Count total records (with policy filter)
   let countQuery = options.db
@@ -732,7 +740,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
   const thumbnailField = (() => {
     const field = getThumbnailField(cmsFields);
     return field &&
-        columnResult.readableColumns.includes(field.column.name)
+        columnResult.readableColumns.includes(field.column.propertyName)
       ? field
       : undefined;
   })();
@@ -772,7 +780,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
       // Avoids inline base64/large signed URLs in HTML; the proxy handler
       // controls cache headers per-request.
       const fileUrl =
-        `${basePath}/files/${table.name}/${thumbnailField.column.name}/${id}${sourceQuery}`;
+        `${basePath}/files/${table.name}/${thumbnailField.column.propertyName}/${id}${sourceQuery}`;
 
       const thumbnailUrl = resolveThumbnailUrl(
         value,
@@ -803,7 +811,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
         // filterRecordsColumns() already stripped hidden keys from `record`,
         // but this explicit guard keeps the contract self-contained if that
         // pre-filter ever changes (e.g. null placeholders instead of deletion).
-        if (!columnResult.readableColumns.includes(col.name)) {
+        if (!columnResult.readableColumns.includes(col.propertyName)) {
           continue;
         }
         const pluginConfig = col.cmsOptions?.plugins?.[pluginName];
@@ -886,7 +894,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
       const id = record[pkCol.propertyName] as string | number;
       const value = record[thumbnailField.column.propertyName];
       const fileUrl =
-        `${basePath}/files/${table.name}/${thumbnailField.column.name}/${id}`;
+        `${basePath}/files/${table.name}/${thumbnailField.column.propertyName}/${id}`;
 
       const thumbnailUrl = resolveThumbnailUrl(
         value,
@@ -942,7 +950,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
 
     // Build columns for list, filtered by readable columns
     const listColumns: ListColumn[] = getListColumns(table).filter(
-      (col) => columnResult.readableColumns.includes(col.name ?? col.key),
+      (col) => columnResult.readableColumns.includes(col.key),
     );
 
     // Find columns with plugin config and add any that were filtered out (e.g., json fields)
@@ -959,7 +967,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
       if (col.cmsOptions?.hidden) continue;
 
       // Skip columns not readable by this user
-      if (!columnResult.readableColumns.includes(col.name)) continue;
+      if (!columnResult.readableColumns.includes(col.propertyName)) continue;
 
       // Check if column has any plugin config
       const plugins = col.cmsOptions?.plugins;
@@ -972,8 +980,7 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
       if (!existingKeys.has(col.propertyName)) {
         listColumns.push({
           key: col.propertyName,
-          name: col.name,
-          label: formatColumnName(col.name),
+          label: propertyNameToLabel(col.propertyName),
         });
       }
     }
@@ -1188,7 +1195,7 @@ export async function handleRead(ctx: RouteContext): Promise<Response> {
 
   // Filter CMS fields to only include readable columns
   const cmsFields = tableToCmsFields(table).filter(
-    (field) => columnResult.readableColumns.includes(field.column.name),
+    (field) => columnResult.readableColumns.includes(field.column.propertyName),
   );
 
   const relationData = await fetchAllRelationOptions(options, table);
@@ -1472,17 +1479,14 @@ export async function handleCreate(ctx: RouteContext): Promise<Response> {
 
     // Only process columns the user can write to (based on source-aware policies)
     const editableColumns = getEditableColumns(table).filter(
-      (col) => columnResultWithSource.writableColumns.includes(col.name),
+      (col) =>
+        columnResultWithSource.writableColumns.includes(col.propertyName),
     );
     let values = coerceFormValues(formData, editableColumns);
 
     // Merge in file data for file columns
     for (const [fieldName, fileRef] of Object.entries(fileData)) {
-      if (
-        columnResultWithSource.writableColumns.includes(
-          table.columns.find((c) => c.propertyName === fieldName)?.name ?? '',
-        )
-      ) {
+      if (columnResultWithSource.writableColumns.includes(fieldName)) {
         values[fieldName] = fileRef;
       }
     }
@@ -1826,7 +1830,8 @@ export async function handleUpdate(ctx: RouteContext): Promise<Response> {
 
     // Only process columns the user can write to (based on source-aware policies)
     const editableColumns = getEditableColumns(table).filter(
-      (col) => columnResultWithSource.writableColumns.includes(col.name),
+      (col) =>
+        columnResultWithSource.writableColumns.includes(col.propertyName),
     );
     const values = coerceFormValues(formData, editableColumns);
 
@@ -1834,7 +1839,9 @@ export async function handleUpdate(ctx: RouteContext): Promise<Response> {
     // Only for columns the user can write — a read-only file column must not
     // be nullable via a hand-crafted _clear_ field.
     for (const fileCol of fileColumns) {
-      if (!columnResultWithSource.writableColumns.includes(fileCol.name)) {
+      if (
+        !columnResultWithSource.writableColumns.includes(fileCol.propertyName)
+      ) {
         continue;
       }
       const clearField = `_clear_${fileCol.propertyName}`;
@@ -1848,11 +1855,7 @@ export async function handleUpdate(ctx: RouteContext): Promise<Response> {
 
     // Merge in file data for file columns (only if a new file was uploaded)
     for (const [fieldName, fileRef] of Object.entries(fileData)) {
-      if (
-        columnResultWithSource.writableColumns.includes(
-          table.columns.find((c) => c.propertyName === fieldName)?.name ?? '',
-        )
-      ) {
+      if (columnResultWithSource.writableColumns.includes(fieldName)) {
         values[fieldName] = fileRef;
       }
     }
@@ -1870,7 +1873,9 @@ export async function handleUpdate(ctx: RouteContext): Promise<Response> {
         if (!fileRef.key) continue; // No key = inline data or URL-based, skip
 
         // Validate key prefix: {table}/{column}/{recordId}/
-        if (!isValidFileKey(fileRef.key, table.name, col.name, recordId)) {
+        if (
+          !isValidFileKey(fileRef.key, table.name, col.propertyName, recordId)
+        ) {
           fileKeyErrors[col.propertyName] =
             'Invalid file reference. Please re-upload the file.';
           continue;
@@ -1885,7 +1890,7 @@ export async function handleUpdate(ctx: RouteContext): Promise<Response> {
             request,
             user: authUser ? { sub: authUser.id, role: authUser.role } : null,
             table: table.name,
-            column: col.name,
+            column: col.propertyName,
             action: 'update',
             recordId: String(recordId),
           });
@@ -2278,10 +2283,7 @@ export async function handleDelete(ctx: RouteContext): Promise<Response> {
         recordId,
         recordToDelete,
         clearedFileValues,
-        fileColumns.map((col) => ({
-          propertyName: col.propertyName,
-          name: col.name,
-        })),
+        fileColumns.map((col) => ({ propertyName: col.propertyName })),
         request,
         authUser ? { id: authUser.id, role: authUser.role } : undefined,
         options.onError
@@ -2387,10 +2389,12 @@ async function renderCreateForm(
   const cmsFields = allCmsFields
     .filter((field) => {
       // Always include writable columns
-      if (columnResult.writableColumns.includes(field.column.name)) return true;
+      if (columnResult.writableColumns.includes(field.column.propertyName)) {
+        return true;
+      }
       // Include readable columns that have plugin configuration (show as read-only)
       if (
-        columnResult.readableColumns.includes(field.column.name) &&
+        columnResult.readableColumns.includes(field.column.propertyName) &&
         field.column.cmsOptions?.plugins
       ) {
         return true;
@@ -2399,7 +2403,7 @@ async function renderCreateForm(
     })
     .map((field) => {
       // Mark non-writable columns as read-only
-      if (!columnResult.writableColumns.includes(field.column.name)) {
+      if (!columnResult.writableColumns.includes(field.column.propertyName)) {
         return { ...field, readOnly: true };
       }
       return field;
@@ -2434,7 +2438,7 @@ async function renderCreateForm(
               request: ctx.request,
               user: user ?? null,
               table: table.name,
-              column: field.column.name,
+              column: field.column.propertyName,
               action: 'create',
               recordId: undefined,
             });
@@ -2549,10 +2553,12 @@ async function renderEditForm(
   const cmsFields = allCmsFields
     .filter((field) => {
       // Always include writable columns
-      if (columnResult.writableColumns.includes(field.column.name)) return true;
+      if (columnResult.writableColumns.includes(field.column.propertyName)) {
+        return true;
+      }
       // Include readable columns that have plugin configuration (show as read-only)
       if (
-        columnResult.readableColumns.includes(field.column.name) &&
+        columnResult.readableColumns.includes(field.column.propertyName) &&
         field.column.cmsOptions?.plugins
       ) {
         return true;
@@ -2561,7 +2567,7 @@ async function renderEditForm(
     })
     .map((field) => {
       // Mark non-writable columns as read-only
-      if (!columnResult.writableColumns.includes(field.column.name)) {
+      if (!columnResult.writableColumns.includes(field.column.propertyName)) {
         return { ...field, readOnly: true };
       }
       return field;
@@ -2600,7 +2606,7 @@ async function renderEditForm(
               request: ctx.request,
               user: user ?? null,
               table: table.name,
-              column: field.column.name,
+              column: field.column.propertyName,
               action: 'update',
               recordId: String(recordId),
             });

@@ -22,7 +22,7 @@ import type { CMSField, IntrospectedColumn } from '@hotsauce/core';
 // Helper to create mock CMSField
 function createMockField(overrides: Partial<CMSField> = {}): CMSField {
   const column: IntrospectedColumn = {
-    name: 'test_field',
+    dbName: 'test_field',
     propertyName: 'testField',
     dataType: 'string',
     columnType: 'PgVarchar',
@@ -431,7 +431,7 @@ Deno.test('detailField: returns empty for hidden field even with override', () =
 Deno.test('detailField: renders image file with preview and download link', () => {
   const field = createMockField({
     fieldType: 'file',
-    column: { propertyName: 'avatar', name: 'avatar' } as IntrospectedColumn,
+    column: { propertyName: 'avatar', dbName: 'avatar' } as IntrospectedColumn,
     label: 'Avatar',
   });
 
@@ -471,7 +471,7 @@ Deno.test('detailField: renders document file with download link but NO image pr
     fieldType: 'file',
     column: {
       propertyName: 'document',
-      name: 'document',
+      dbName: 'document',
     } as IntrospectedColumn,
     label: 'Document',
   });
@@ -524,7 +524,7 @@ Deno.test('detailField: does not preview SVG by default', () => {
     fieldType: 'file',
     column: {
       propertyName: 'icon',
-      name: 'icon',
+      dbName: 'icon',
       cmsOptions: { file: true },
     } as IntrospectedColumn,
   });
@@ -552,7 +552,7 @@ Deno.test('detailField: previews SVG when file.previewSvg is true', () => {
     fieldType: 'file',
     column: {
       propertyName: 'icon',
-      name: 'icon',
+      dbName: 'icon',
       cmsOptions: { file: { previewSvg: true } },
     } as IntrospectedColumn,
   });
@@ -580,7 +580,7 @@ Deno.test('detailField: renders file without fileUrl using fallback URL', () => 
     fieldType: 'file',
     column: {
       propertyName: 'document',
-      name: 'document',
+      dbName: 'document',
     } as IntrospectedColumn,
   });
 
@@ -602,7 +602,7 @@ Deno.test('detailField: renders file without fileUrl using fallback URL', () => 
 Deno.test('detailField: escapes fileUrl to prevent XSS', () => {
   const field = createMockField({
     fieldType: 'file',
-    column: { propertyName: 'doc', name: 'doc' } as IntrospectedColumn,
+    column: { propertyName: 'doc', dbName: 'doc' } as IntrospectedColumn,
   });
 
   const fileValue = {
@@ -769,7 +769,7 @@ function createGridOptions(
     baseUrl: '/admin/media',
     thumbnailField: createMockField({
       column: {
-        name: 'file',
+        dbName: 'file',
         propertyName: 'file',
         dataType: 'json',
         columnType: 'PgJsonb',
@@ -1136,7 +1136,7 @@ function createMockPanelData(
     fields: [
       createMockField({
         column: {
-          name: 'title',
+          dbName: 'title',
           propertyName: 'title',
           dataType: 'string',
           columnType: 'PgVarchar',

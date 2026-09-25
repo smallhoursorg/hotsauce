@@ -208,7 +208,8 @@ export function gridItems(
           class="cms-grid-item cms-grid-picker-item"
           data-picker-id="${thumb.id}"
           data-picker-table="${options.tableName ?? ''}"
-          data-picker-column="${options.thumbnailField.column.name}"
+          data-picker-column="${options.thumbnailField.column.propertyName}"
+          data-picker-pk="${options.primaryKey ?? 'id'}"
           data-picker-record="${JSON.stringify(thumb.record ?? {})}"
         >
           ${raw(thumbnailHtml)}
@@ -437,6 +438,12 @@ export const pickerScript: string = `
       record = JSON.parse(recordJson);
     } catch (err) {
       record = {};
+    }
+    // dataset values are always strings; prefer the typed PK from the record.
+    // data-picker-pk names the PK column, which need not be called 'id'.
+    var pk = item.dataset.pickerPk;
+    if (pk && record && Object.prototype.hasOwnProperty.call(record, pk)) {
+      id = record[pk];
     }
     
     // Post message to parent (Puck editor iframe parent)

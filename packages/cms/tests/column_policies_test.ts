@@ -32,7 +32,7 @@ function createTestContext(
 function createMockColumns(): IntrospectedColumn[] {
   return [
     {
-      name: 'id',
+      dbName: 'id',
       propertyName: 'id',
       columnType: 'PgSerial',
       dataType: 'number',
@@ -42,7 +42,7 @@ function createMockColumns(): IntrospectedColumn[] {
       isUnique: true,
     },
     {
-      name: 'name',
+      dbName: 'name',
       propertyName: 'name',
       columnType: 'PgText',
       dataType: 'string',
@@ -52,7 +52,7 @@ function createMockColumns(): IntrospectedColumn[] {
       isUnique: false,
     },
     {
-      name: 'email',
+      dbName: 'email',
       propertyName: 'email',
       columnType: 'PgText',
       dataType: 'string',
@@ -62,7 +62,7 @@ function createMockColumns(): IntrospectedColumn[] {
       isUnique: true,
     },
     {
-      name: 'salary',
+      dbName: 'salary',
       propertyName: 'salary',
       columnType: 'PgInteger',
       dataType: 'number',
@@ -72,7 +72,7 @@ function createMockColumns(): IntrospectedColumn[] {
       isUnique: false,
     },
     {
-      name: 'ssn',
+      dbName: 'ssn',
       propertyName: 'ssn',
       columnType: 'PgText',
       dataType: 'string',
@@ -82,7 +82,7 @@ function createMockColumns(): IntrospectedColumn[] {
       isUnique: false,
     },
     {
-      name: 'tenant_id',
+      dbName: 'tenant_id',
       propertyName: 'tenantId',
       columnType: 'PgText',
       dataType: 'string',
@@ -372,14 +372,14 @@ Deno.test('evaluateColumnPolicies: uses propertyName NOT column name for policy 
 
   // Using propertyName correctly hides the column
   assertEquals(
-    correctResult.readableColumns.includes('tenant_id'),
+    correctResult.readableColumns.includes('tenantId'),
     false,
     'Policy by propertyName should hide the column',
   );
 
   // Using column name does NOT hide the column (policy is ignored)
   assertEquals(
-    wrongResult.readableColumns.includes('tenant_id'),
+    wrongResult.readableColumns.includes('tenantId'),
     true,
     'Policy by column name should be ignored (column stays visible)',
   );
@@ -400,11 +400,11 @@ Deno.test('filterRecordColumns: keeps only readable columns', () => {
 
   // Mock column metadata (all columns use same name as propertyName for simplicity)
   const columns: IntrospectedColumn[] = [
-    { name: 'id', propertyName: 'id' } as IntrospectedColumn,
-    { name: 'name', propertyName: 'name' } as IntrospectedColumn,
-    { name: 'email', propertyName: 'email' } as IntrospectedColumn,
-    { name: 'salary', propertyName: 'salary' } as IntrospectedColumn,
-    { name: 'ssn', propertyName: 'ssn' } as IntrospectedColumn,
+    { dbName: 'id', propertyName: 'id' } as IntrospectedColumn,
+    { dbName: 'name', propertyName: 'name' } as IntrospectedColumn,
+    { dbName: 'email', propertyName: 'email' } as IntrospectedColumn,
+    { dbName: 'salary', propertyName: 'salary' } as IntrospectedColumn,
+    { dbName: 'ssn', propertyName: 'ssn' } as IntrospectedColumn,
   ];
 
   const filtered = filterRecordColumns(
@@ -427,15 +427,15 @@ Deno.test('filterRecordColumns: handles snake_case columns with camelCase proper
 
   // Mock column metadata with snake_case DB names
   const columns: IntrospectedColumn[] = [
-    { name: 'id', propertyName: 'id' } as IntrospectedColumn,
-    { name: 'user_name', propertyName: 'userName' } as IntrospectedColumn,
+    { dbName: 'id', propertyName: 'id' } as IntrospectedColumn,
+    { dbName: 'user_name', propertyName: 'userName' } as IntrospectedColumn,
     {
-      name: 'email_address',
+      dbName: 'email_address',
       propertyName: 'emailAddress',
     } as IntrospectedColumn,
   ];
 
-  const filtered = filterRecordColumns(record, ['id', 'user_name'], columns);
+  const filtered = filterRecordColumns(record, ['id', 'userName'], columns);
 
   assertEquals(filtered, { id: 1, userName: 'John' });
   assertEquals('emailAddress' in filtered, false);
@@ -445,8 +445,8 @@ Deno.test('filterRecordColumns: handles missing columns gracefully', () => {
   const record = { id: 1, name: 'John' };
 
   const columns: IntrospectedColumn[] = [
-    { name: 'id', propertyName: 'id' } as IntrospectedColumn,
-    { name: 'name', propertyName: 'name' } as IntrospectedColumn,
+    { dbName: 'id', propertyName: 'id' } as IntrospectedColumn,
+    { dbName: 'name', propertyName: 'name' } as IntrospectedColumn,
   ];
 
   const filtered = filterRecordColumns(
@@ -465,9 +465,9 @@ Deno.test('filterRecordsColumns: filters array of records', () => {
   ];
 
   const columns: IntrospectedColumn[] = [
-    { name: 'id', propertyName: 'id' } as IntrospectedColumn,
-    { name: 'name', propertyName: 'name' } as IntrospectedColumn,
-    { name: 'ssn', propertyName: 'ssn' } as IntrospectedColumn,
+    { dbName: 'id', propertyName: 'id' } as IntrospectedColumn,
+    { dbName: 'name', propertyName: 'name' } as IntrospectedColumn,
+    { dbName: 'ssn', propertyName: 'ssn' } as IntrospectedColumn,
   ];
 
   const filtered = filterRecordsColumns(records, ['id', 'name'], columns);

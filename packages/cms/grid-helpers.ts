@@ -108,9 +108,11 @@ export async function buildGridPanelData(
   const allCmsFields = tableToCmsFields(table, true);
   const panelFields = allCmsFields
     .filter((field) => {
-      if (columnResult.writableColumns.includes(field.column.name)) return true;
+      if (columnResult.writableColumns.includes(field.column.propertyName)) {
+        return true;
+      }
       if (
-        columnResult.readableColumns.includes(field.column.name) &&
+        columnResult.readableColumns.includes(field.column.propertyName) &&
         field.column.cmsOptions?.plugins
       ) {
         return true;
@@ -118,7 +120,7 @@ export async function buildGridPanelData(
       return false;
     })
     .map((field) => {
-      if (!columnResult.writableColumns.includes(field.column.name)) {
+      if (!columnResult.writableColumns.includes(field.column.propertyName)) {
         return { ...field, readOnly: true };
       }
       return field;
@@ -130,7 +132,7 @@ export async function buildGridPanelData(
   // Resolve thumbnail URL for the panel preview
   const thumbValue = transformedRecord[thumbnailField.column.propertyName];
   const fileUrl =
-    `${options.basePath}/files/${table.name}/${thumbnailField.column.name}/${selectedId}`;
+    `${options.basePath}/files/${table.name}/${thumbnailField.column.propertyName}/${selectedId}`;
   const thumbnailUrl = resolveThumbnailUrl(
     thumbValue,
     thumbnailField.fieldType,

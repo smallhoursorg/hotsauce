@@ -12,7 +12,8 @@ export function toUIFieldInfo(field: CMSField): UIFieldInfo {
     | Record<string, unknown>
     | undefined;
   return {
-    name: field.column.name,
+    name: field.column.propertyName,
+    dbName: field.column.dbName,
     label: field.label,
     fieldType: field.fieldType,
     columnType: field.column.columnType,
