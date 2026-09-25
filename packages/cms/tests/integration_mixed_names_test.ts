@@ -397,6 +397,12 @@ Deno.test('integration: columns whose DB name differs from property name', async
       assertEquals(response.status, 200);
       const html = await response.text();
       assertStringIncludes(html, 'data-picker-column="coverImage"');
+      // The grid tells the picker script which record key holds the PK, and
+      // the record carries it under that key, so a click can emit the typed id
+      // even though the column is not called `id`.
+      assertStringIncludes(html, 'data-picker-pk="articleId"');
+      assertStringIncludes(html, 'data-picker-id="1"');
+      assertStringIncludes(html, '&quot;articleId&quot;:1');
     },
   );
 

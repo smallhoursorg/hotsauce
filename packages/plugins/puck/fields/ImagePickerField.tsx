@@ -15,29 +15,17 @@
  */
 
 import { CmsContext, React } from '../client/globals.ts';
+import {
+  PICKER_MESSAGE_TYPE,
+  type SelectedImage,
+  selectionFromPickerMessage,
+} from './selection.ts';
+
+export type { SelectedImage };
 
 // ============================================================================
 // Types
 // ============================================================================
-
-/**
- * A selected image from the CMS image picker.
- * Stores only identifiers — URLs are constructed at render time.
- *
- * Works with any table containing image files (e.g., media, photos, avatars).
- */
-export type SelectedImage = {
-  /** Primary key from the table */
-  id: string | number;
-  /** Table name (e.g. 'media', 'photos', 'avatars') */
-  table: string;
-  /** File column name (e.g. 'file', 'image') */
-  column: string;
-  /** Alt text seeded from the record (can be overridden per usage) */
-  alt?: string;
-  /** Original filename (display only) */
-  filename?: string;
-};
 
 /**
  * Props for ImagePickerField component.
@@ -149,30 +137,14 @@ export function ImagePickerField({
       // Validate sender origin in case the iframe window navigates unexpectedly.
       if (!expectedOrigin || event.origin !== expectedOrigin) return;
 
-      if (event.data?.type === 'cms:media-selected') {
-        const record = event.data.record;
-        // column comes from the server (data-picker-column), not the prop,
-        // so it reflects the real file column regardless of what the caller passes.
-        const serverColumn = event.data.column;
-        const file = serverColumn ? record?.[serverColumn] : undefined;
-
-        // Validate id shape defensively (number or non-empty string).
-        // Picker server should only emit numeric/string PKs, but ignore anything
-        // else rather than persisting a garbage SelectedImage value.
-        const id = record?.id;
-        const isValidId = typeof id === 'number' ||
-          (typeof id === 'string' && id.length > 0);
-
-        if (isValidId && serverColumn) {
-          onChangeRef.current({
-            id,
-            table: event.data.table || table,
-            column: serverColumn,
-            alt: (altField && record[altField]) || '',
-            filename: (file as { filename?: string } | undefined)?.filename ||
-              '',
-          });
-        }
+      if (event.data?.type === PICKER_MESSAGE_TYPE) {
+        // The id and column come from the server (the record's real PK and
+        // the real file column), not from props — see selectionFromPickerMessage.
+        const selection = selectionFromPickerMessage(event.data, {
+          table,
+          altField,
+        });
+        if (selection) onChangeRef.current(selection);
         setIsOpen(false);
         dialogRef.current?.close();
       }
