@@ -450,7 +450,7 @@ export async function evaluateColumnPolicies(
  *   { dbName: 'id', propertyName: 'id' },
  *   { dbName: 'user_name', propertyName: 'userName' },
  *   { dbName: 'salary', propertyName: 'salary' },
- *   { name: 'ssn', propertyName: 'ssn' },
+ *   { dbName: 'ssn', propertyName: 'ssn' },
  * ];
  * const filtered = filterRecordColumns(fullRecord, ['id', 'userName'], columns);
  * // { id: 1, userName: 'John' }

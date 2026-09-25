@@ -54,7 +54,7 @@ import { users } from './schema';
 const meta = introspectTable(users);
 console.log(meta.name); // 'users'
 console.log(meta.primaryKey); // ['id']
-console.log(meta.columns); // [{name: 'id', dataType: 'number', ...}, ...]
+console.log(meta.columns); // [{propertyName: 'id', dbName: 'id', dataType: 'number', ...}, ...]
 ```
 
 ### `fields/` - Field Mapping
