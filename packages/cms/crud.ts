@@ -1830,8 +1830,13 @@ export async function handleUpdate(ctx: RouteContext): Promise<Response> {
     );
     const values = coerceFormValues(formData, editableColumns);
 
-    // Handle file clearing (_clear_{column} fields)
+    // Handle file clearing (_clear_{column} fields).
+    // Only for columns the user can write — a read-only file column must not
+    // be nullable via a hand-crafted _clear_ field.
     for (const fileCol of fileColumns) {
+      if (!columnResultWithSource.writableColumns.includes(fileCol.name)) {
+        continue;
+      }
       const clearField = `_clear_${fileCol.propertyName}`;
       if (formData[clearField] === '1') {
         // User clicked delete - set to null

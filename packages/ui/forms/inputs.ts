@@ -487,8 +487,10 @@ export function fileInput(
           .filename}" class="cms-file-preview" />
       `
       : '';
-    // Delete button - sets hidden field that signals file removal
-    const deleteButton = !field.column.notNull
+    // Delete button - sets hidden field that signals file removal.
+    // Not rendered for disabled (read-only) fields: the server ignores
+    // _clear_ for non-writable columns, so the button would be a dead control.
+    const deleteButton = !field.column.notNull && !options.disabled
       ? html`
         <button
           type="submit"

@@ -1499,6 +1499,16 @@ export function createCmsHandler(options: CmsOptions): Handler {
       const parts = filePath.split('/');
 
       if (parts.length === 3 || parts.length === 4) {
+        // Same gate as table and plugin routes below. With built-in auth the
+        // JWT check above already ran; with a custom `isAuthenticated` this
+        // was the only route that skipped it.
+        if (!resolvedAuth) {
+          const authenticated = await opts.isAuthenticated(request);
+          if (!authenticated) {
+            return forbidden('Authentication required');
+          }
+        }
+
         const [tableName, columnName, recordId] = parts as [
           string,
           string,

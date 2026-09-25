@@ -350,6 +350,13 @@ function createStorageProvider(options: ResolvedS3Options): StorageProvider {
      * Delete an object from storage.
      */
     async deleteObject(ctx: DeleteContext): Promise<void> {
+      // The key comes from a stored FileReference that a client with update
+      // rights could have crafted; core only checks its prefix. A `..` segment
+      // would be dot-normalised by the URL parser into a sibling prefix (or,
+      // path-style, a sibling bucket) and the SigV4 signature would be valid
+      // for that collapsed path. Reject it here, as signDownloadUrl does.
+      assertSafeKey(ctx.key);
+
       const bucket = typeof options.bucket === 'function'
         ? options.bucket({
           request: ctx.request ?? new Request('https://internal'),
@@ -644,8 +651,14 @@ export function createS3StoragePlugin(
           const resolvedFieldConfig = resolveFileConfig(
             ctx.field?.config as Record<string, unknown> | undefined,
           );
-          const acceptValue = resolvedFieldConfig?.accept;
-          const maxSizeValue = resolvedFieldConfig?.maxSize;
+          // Only render the upload page for columns explicitly configured as
+          // file fields (`$cms({ file: ... })`). Otherwise this URL could be
+          // used as an upload entrypoint for arbitrary columns.
+          if (!resolvedFieldConfig) {
+            return new Response('Not found', { status: 404 });
+          }
+          const acceptValue = resolvedFieldConfig.accept;
+          const maxSizeValue = resolvedFieldConfig.maxSize;
 
           const acceptAttr = typeof acceptValue === 'string'
             ? { accept: acceptValue }
@@ -808,6 +821,22 @@ export function createS3StoragePlugin(
           const fieldConfig = ctx.field?.config as
             | Record<string, unknown>
             | undefined;
+
+          // Only presign for columns explicitly configured as file fields.
+          // Without this, an authenticated user could mint presigned PUTs to
+          // arbitrary bucket prefixes for any (or a nonexistent) column, with
+          // no size/accept limits (validatePresignRequest is a no-op when
+          // `$cms({ file: ... })` is absent) and no orphan cleanup.
+          if (!resolveFileConfig(fieldConfig)) {
+            return new Response(
+              JSON.stringify({ error: 'Not a file field' }),
+              {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
           const validationError = validatePresignRequest(body, fieldConfig);
           if (validationError) {
             return new Response(

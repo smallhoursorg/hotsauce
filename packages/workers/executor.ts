@@ -367,6 +367,8 @@ export class WorkerExecutor {
     resolve: (value: Serializable) => void;
     reject: (error: Error) => void;
     context: PluginErrorContext;
+    /** Worker (plugin name) that is allowed to answer this request */
+    pluginName: string;
   }> = new Map();
   private messageIdCounter = 0;
   private onError?: PluginErrorHandler;
@@ -403,7 +405,7 @@ export class WorkerExecutor {
 
     // Set up message handling
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      this.handleWorkerResponse(event.data);
+      this.handleWorkerResponse(plugin.name, event.data);
     };
 
     // SECURITY: Log Worker errors but don't expose details
@@ -997,6 +999,7 @@ export class WorkerExecutor {
           reject(error);
         },
         context,
+        pluginName,
       });
 
       // Send message
@@ -1012,10 +1015,44 @@ export class WorkerExecutor {
    * but NOT propagated in the thrown error. This prevents plugins from
    * leaking credentials or sensitive data via error messages to end users.
    */
-  private handleWorkerResponse(response: WorkerResponse): void {
+  private handleWorkerResponse(
+    senderPluginName: string,
+    response: WorkerResponse,
+  ): void {
+    if (
+      !response || typeof response !== 'object' ||
+      typeof response.id !== 'string'
+    ) {
+      console.warn(
+        `[plugin:${senderPluginName}] Received malformed Worker message`,
+      );
+      return;
+    }
+
     const pending = this.pendingRequests.get(response.id);
     if (!pending) {
       console.warn(`Received response for unknown request: ${response.id}`);
+      return;
+    }
+
+    // SECURITY: `pendingRequests` is shared by every Worker, and request ids
+    // are predictable. Without this check a malicious plugin could post a
+    // response carrying another plugin's request id and have its own payload
+    // accepted as that plugin's beforeSave/afterRead/route result. Only the
+    // Worker the request was sent to may settle it; anything else is reported
+    // and ignored, and the real Worker's answer is still awaited.
+    if (pending.pluginName !== senderPluginName) {
+      this.onError?.(
+        new Error(
+          `Plugin "${senderPluginName}" attempted to answer a request ` +
+            `belonging to plugin "${pending.pluginName}" (id: ${response.id})`,
+        ),
+        {
+          source: 'plugin',
+          plugin: senderPluginName,
+          operation: pending.context.operation,
+        },
+      );
       return;
     }
 

@@ -9,6 +9,7 @@
 import { assertEquals, assertRejects, assertStringIncludes } from '@std/assert';
 import { buildObjectUrl, presignUrl } from '../sigv4.ts';
 import { createS3StoragePlugin, validatePresignRequest } from '../mod.ts';
+import type { PluginRouteContext } from '@hotsauce/cms';
 
 // ─────────────────────────────────────────────────────────────
 // PublicEndpoint Tests
@@ -695,4 +696,163 @@ Deno.test('signDownloadUrl: rejects percent-encoded traversal (CDN-decode smuggl
       'percent-encoding',
     );
   }
+});
+
+// ─────────────────────────────────────────────────────────────
+// deleteObject: key safety
+// ─────────────────────────────────────────────────────────────
+
+Deno.test('deleteObject: rejects a traversal key before signing or fetching', async () => {
+  const provider = makeProvider();
+  const originalFetch = globalThis.fetch;
+  let fetchCalled = false;
+  globalThis.fetch = () => {
+    fetchCalled = true;
+    return Promise.resolve(new Response(null, { status: 204 }));
+  };
+  try {
+    for (
+      const key of [
+        'media/file/1/../../../../victim/secret.txt',
+        'media/file/1/./x.png',
+        '/etc/passwd',
+        'media/file/1/%2e%2e/x.png',
+      ]
+    ) {
+      await assertRejects(
+        () => provider.deleteObject!({ storage: 's3', key }),
+        Error,
+        'Invalid storage key',
+      );
+    }
+    assertEquals(fetchCalled, false, 'no DELETE must be issued');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// Routes: presign and upload page require a file column
+// ─────────────────────────────────────────────────────────────
+
+function makeCtx(
+  overrides: Partial<PluginRouteContext> = {},
+): PluginRouteContext {
+  return {
+    table: '',
+    recordId: '',
+    column: undefined,
+    record: {},
+    value: undefined,
+    field: undefined,
+    user: undefined,
+    csrfToken: 'csrf',
+    sourceToken: 'source',
+    basePath: '/admin',
+    requestUrl: 'http://localhost/admin/s3-storage/_x',
+    method: 'GET',
+    body: undefined,
+    params: {},
+    ...overrides,
+  };
+}
+
+// deno-lint-ignore no-explicit-any
+function findRoute(plugin: any, pattern: string, method: string) {
+  return plugin.routes.find(
+    // deno-lint-ignore no-explicit-any
+    (r: any) =>
+      r.pattern === pattern && (r.methods ?? ['GET']).includes(method),
+  );
+}
+
+function makePlugin() {
+  return createS3StoragePlugin({
+    endpoint: 'http://localhost:9000',
+    region: 'us-east-1',
+    bucket: 'test-bucket',
+    accessKeyId: 'test-key',
+    secretAccessKey: 'test-secret',
+    urlStyle: 'path',
+    basePath: '/admin',
+  });
+}
+
+Deno.test('routes: presign 404s when the column is not a file field', async () => {
+  const plugin = makePlugin();
+  const presignRoute = findRoute(plugin, ':table/:id/:column', 'POST');
+  const res = await presignRoute.handler(makeCtx({
+    table: 'posts',
+    recordId: '42',
+    column: 'title',
+    method: 'POST',
+    field: { name: 'title', type: 'text', config: {} },
+    requestUrl: 'http://localhost/admin/s3-storage/posts/42/title',
+    body: JSON.stringify({
+      filename: 'huge.bin',
+      contentType: 'application/octet-stream',
+      size: 10 * 1024 * 1024 * 1024,
+    }),
+    params: { table: 'posts', id: '42', column: 'title' },
+  })) as Response;
+  assertEquals(res.status, 404);
+  const json = await res.json();
+  assertEquals(json.error, 'Not a file field');
+});
+
+Deno.test('routes: presign 404s when the column does not exist', async () => {
+  const plugin = makePlugin();
+  const presignRoute = findRoute(plugin, ':table/:id/:column', 'POST');
+  // The CMS leaves ctx.field undefined for an unknown column.
+  const res = await presignRoute.handler(makeCtx({
+    table: 'posts',
+    recordId: '42',
+    column: 'anything',
+    method: 'POST',
+    field: undefined,
+    requestUrl: 'http://localhost/admin/s3-storage/posts/42/anything',
+    body: JSON.stringify({
+      filename: 'a.bin',
+      contentType: 'application/octet-stream',
+      size: 10,
+    }),
+    params: { table: 'posts', id: '42', column: 'anything' },
+  })) as Response;
+  assertEquals(res.status, 404);
+});
+
+Deno.test('routes: presign succeeds for a configured file column', async () => {
+  const plugin = makePlugin();
+  const presignRoute = findRoute(plugin, ':table/:id/:column', 'POST');
+  const res = await presignRoute.handler(makeCtx({
+    table: 'posts',
+    recordId: '42',
+    column: 'image',
+    method: 'POST',
+    field: { name: 'image', type: 'file', config: { file: true } },
+    requestUrl: 'http://localhost/admin/s3-storage/posts/42/image',
+    body: JSON.stringify({
+      filename: 'photo.png',
+      contentType: 'image/png',
+      size: 1024,
+    }),
+    params: { table: 'posts', id: '42', column: 'image' },
+  })) as Response;
+  assertEquals(res.status, 200);
+  const json = await res.json();
+  assertStringIncludes(json.key, 'posts/image/42/');
+});
+
+Deno.test('routes: upload page 404s when the column is not a file field', async () => {
+  const plugin = makePlugin();
+  const pageRoute = findRoute(plugin, ':table/:id/:column', 'GET');
+  const res = await pageRoute.handler(makeCtx({
+    table: 'posts',
+    recordId: '42',
+    column: 'title',
+    field: { name: 'title', type: 'text', config: {} },
+    requestUrl: 'http://localhost/admin/s3-storage/posts/42/title',
+    params: { table: 'posts', id: '42', column: 'title' },
+  })) as Response;
+  assertEquals(res.status, 404);
 });

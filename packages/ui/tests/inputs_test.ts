@@ -623,3 +623,52 @@ Deno.test('manyToManyField: handles empty options', () => {
   assertStringIncludes(result, 'class="cms-field"');
   assertStringIncludes(result, 'No categories available');
 });
+
+Deno.test('fileInput: renders Delete button for an editable nullable file field', () => {
+  const field = createMockField({
+    fieldType: 'file',
+    column: {
+      name: 'avatar',
+      propertyName: 'avatar',
+      dataType: 'json',
+      columnType: 'PgJsonb',
+      notNull: false,
+      hasDefault: false,
+      isPrimaryKey: false,
+      isUnique: false,
+      cmsOptions: { file: true },
+    } as IntrospectedColumn,
+  });
+  const value = {
+    filename: 'photo.png',
+    contentType: 'image/png',
+    size: 10,
+  };
+  const result = fileInput(field, { value });
+  assertStringIncludes(result, 'name="_clear_avatar"');
+});
+
+Deno.test('fileInput: omits Delete button when the field is disabled', () => {
+  const field = createMockField({
+    fieldType: 'file',
+    column: {
+      name: 'avatar',
+      propertyName: 'avatar',
+      dataType: 'json',
+      columnType: 'PgJsonb',
+      notNull: false,
+      hasDefault: false,
+      isPrimaryKey: false,
+      isUnique: false,
+      cmsOptions: { file: true },
+    } as IntrospectedColumn,
+  });
+  const value = {
+    filename: 'photo.png',
+    contentType: 'image/png',
+    size: 10,
+  };
+  const result = fileInput(field, { value, disabled: true });
+  assertStringIncludes(result, 'photo.png');
+  assertEquals(result.includes('_clear_avatar'), false);
+});
