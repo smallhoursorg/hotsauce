@@ -29,6 +29,10 @@ import '@hotsauce/core/extend';
 import { createCmsHandler } from '../mod.ts';
 import { generateCsrfToken } from '../csrf.ts';
 import {
+  createFsStoragePlugin,
+  createMemoryFsAdapter,
+} from '../../plugins/fs-storage/mod.ts';
+import {
   generateSourceToken,
   pluginSource,
   SOURCE,
@@ -431,6 +435,146 @@ Deno.test('integration: columns whose DB name differs from property name', async
         sortedHtml.indexOf('Grace Hopper') < sortedHtml.indexOf('Ada Lovelace')
       ) {
         throw new Error('sort on a policy-hidden column was applied');
+      }
+    },
+  );
+
+  await t.step(
+    'storage plugin: upload page, presign, upload and save all use the property name',
+    async () => {
+      await resetDb();
+      await db.insert(articles).values({
+        headline: 'Needs cover',
+        authorId: 1,
+      });
+
+      // Every callback the storage layer exposes must see the property name.
+      const seenColumns: string[] = [];
+      const plugin = createFsStoragePlugin({
+        basePath: '/admin',
+        fs: createMemoryFsAdapter(),
+        signingSecret: TEST_CSRF_SECRET,
+      });
+      const handler = createHandler({
+        plugins: [plugin],
+        storage: (ctx: { column: string }) => {
+          seenColumns.push(ctx.column);
+          return 'fs';
+        },
+      });
+      const csrf = await generateCsrfToken(TEST_CSRF_SECRET);
+
+      // 1. renderField: the edit form links to the plugin upload page by property name
+      const edit = await handler(
+        new Request('http://localhost/admin/blog_articles/1/edit'),
+      );
+      assertEquals(edit.status, 200);
+      assertStringIncludes(
+        await edit.text(),
+        '/admin/fs-storage/blog_articles/1/coverImage',
+      );
+
+      // 2. plugin route: `:column` resolves by property name
+      const page = await handler(
+        new Request(
+          'http://localhost/admin/fs-storage/blog_articles/1/coverImage',
+        ),
+      );
+      assertEquals(page.status, 200, 'upload page should resolve the column');
+
+      // 3. presign: key prefix carries the property name
+      const presign = await handler(
+        new Request(
+          'http://localhost/admin/fs-storage/blog_articles/1/coverImage',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrf,
+            },
+            body: JSON.stringify({
+              filename: 'cover.png',
+              contentType: 'image/png',
+              size: TEST_PNG_1X1_RED.length,
+            }),
+          },
+        ),
+      );
+      assertEquals(presign.status, 200, await presign.clone().text());
+      const presigned = await presign.json() as {
+        storage: string;
+        key: string;
+        upload: {
+          url: string;
+          method: string;
+          headers?: Record<string, string>;
+        };
+      };
+      if (!presigned.key.startsWith('blog_articles/coverImage/1/')) {
+        throw new Error(`unexpected key prefix: ${presigned.key}`);
+      }
+
+      // 4. upload the bytes
+      const upload = await handler(
+        new Request(`http://localhost${presigned.upload.url}`, {
+          method: presigned.upload.method,
+          headers: {
+            ...(presigned.upload.headers ?? {}),
+            'Content-Type': 'image/png',
+            'X-CSRF-Token': csrf,
+          },
+          body: TEST_PNG_1X1_RED,
+        }),
+      );
+      assertEquals(upload.status, 200, await upload.clone().text());
+
+      // 5. save the reference the way the upload script does: under the property name
+      const formData = new FormData();
+      for (const [k, v] of Object.entries(await tokens())) {
+        formData.append(k, v);
+      }
+      formData.append(
+        'coverImage',
+        JSON.stringify({
+          filename: 'cover.png',
+          contentType: 'image/png',
+          size: TEST_PNG_1X1_RED.length,
+          storage: presigned.storage,
+          key: presigned.key,
+        }),
+      );
+      const save = await handler(
+        new Request('http://localhost/admin/blog_articles/1', {
+          method: 'POST',
+          body: formData,
+        }),
+      );
+      assertEquals(save.status, 303, await save.clone().text());
+
+      const [row] = await db.select().from(articles);
+      const ref = row?.coverImage as { key?: string } | null;
+      assertEquals(
+        ref?.key,
+        presigned.key,
+        'file reference should be persisted',
+      );
+
+      // 6. the files route resolves the stored key and hands off to the provider
+      const serve = await handler(
+        new Request('http://localhost/admin/files/blog_articles/coverImage/1'),
+      );
+      if (serve.status !== 200 && serve.status !== 302) {
+        throw new Error(`files route returned ${serve.status}`);
+      }
+      await serve.arrayBuffer();
+
+      // Storage callbacks only ever saw the property name
+      if (
+        seenColumns.length === 0 || seenColumns.some((c) => c !== 'coverImage')
+      ) {
+        throw new Error(
+          `resolveStorage saw columns: ${JSON.stringify(seenColumns)}`,
+        );
       }
     },
   );

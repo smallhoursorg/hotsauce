@@ -55,12 +55,23 @@ export interface CMSField {
  * e.g., "authorId" -> "Author Id", "created_at" -> "Created At"
  */
 export function propertyNameToLabel(propertyName: string): string {
-  return propertyName
-    .replace(/_+/g, ' ')
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/(^|\s)\S/g, (s) => s.toUpperCase());
+  // Single pass: this runs once per column per form/list render, so it is
+  // kept allocation-light rather than chaining several regex replaces.
+  let out = '';
+  let atWordStart = true;
+  for (let i = 0; i < propertyName.length; i++) {
+    const ch = propertyName[i]!;
+    if (ch === '_' || ch === ' ') {
+      if (!atWordStart) out += ' ';
+      atWordStart = true;
+      continue;
+    }
+    const isUpper = ch >= 'A' && ch <= 'Z';
+    if (isUpper && !atWordStart) out += ' ';
+    out += atWordStart ? ch.toUpperCase() : ch;
+    atWordStart = false;
+  }
+  return out.trimEnd();
 }
 
 const AUDIT_TIMESTAMP_NAMES = new Set([

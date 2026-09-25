@@ -210,7 +210,8 @@ function introspectColumn(
  * import { users } from './schema';
  * const metadata = introspectTable(users);
  * console.log(metadata.name); // 'users'
- * console.log(metadata.columns[0].name); // 'id'
+ * console.log(metadata.columns[0].propertyName); // 'id'
+ * console.log(metadata.columns[0].dbName); // 'id'
  * ```
  */
 export function introspectTable(table: Table): IntrospectedTable {

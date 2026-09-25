@@ -47,13 +47,15 @@ export type ColumnPolicyFn = (
  * - `write: true` implies `read: true` (can't edit what you can't see)
  *
  * For hidden required columns, provide a `default` function to auto-fill values.
- * This enables multi-tenant patterns where tenant_id is auto-filled from user context.
+ * This enables multi-tenant patterns where tenantId is auto-filled from user context.
+ *
+ * Keys are Drizzle property names (`passwordHash`), not DB column names.
  *
  * @example
  * ```ts
  * columns: {
  *   // Hidden from everyone in CMS
- *   password_hash: { read: () => false },
+ *   passwordHash: { read: () => false },
  *
  *   // Only admins can see
  *   salary: { read: (ctx) => ctx.user?.role === 'admin' },
@@ -62,7 +64,7 @@ export type ColumnPolicyFn = (
  *   status: { write: (ctx) => ctx.user?.role === 'admin' },
  *
  *   // Hidden but auto-filled on create (multi-tenant pattern)
- *   tenant_id: {
+ *   tenantId: {
  *     read: () => false,
  *     write: () => false,
  *     default: (ctx) => ctx.user?.tenantId ?? 'default',
@@ -237,9 +239,9 @@ export type Policy = PolicyFn | ActionPolicies;
  *
  *   // Column-level: hide sensitive fields
  *   columns: {
- *     password_hash: { read: () => false },
+ *     passwordHash: { read: () => false },
  *     salary: { read: (ctx) => ctx.user?.role === 'admin' },
- *     tenant_id: {
+ *     tenantId: {
  *       read: () => false,
  *       default: (ctx) => ctx.user?.tenantId,
  *     },
@@ -287,7 +289,7 @@ export interface TablePolicy {
  *   users: {
  *     row: adminOr(ownedBy(users, 'id')),
  *     columns: {
- *       password_hash: { read: () => false },
+ *       passwordHash: { read: () => false },
  *       salary: { read: (ctx) => ctx.user?.role === 'admin' },
  *     },
  *   },
@@ -295,7 +297,7 @@ export interface TablePolicy {
  *   // Columns only (no row filtering)
  *   settings: {
  *     columns: {
- *       api_key: { read: (ctx) => ctx.user?.role === 'admin' },
+ *       apiKey: { read: (ctx) => ctx.user?.role === 'admin' },
  *     },
  *   },
  * };

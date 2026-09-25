@@ -43,7 +43,7 @@ const cmsHandler = createCmsHandler({
     categories: readOnly(), // Admins: full access, others: read-only
     users: {
       columns: {
-        password_hash: { read: () => false }, // Hide password hashes
+        passwordHash: { read: () => false }, // Hide password hashes (keyed by property name)
       },
     },
   },
