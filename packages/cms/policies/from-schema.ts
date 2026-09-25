@@ -177,7 +177,7 @@ export function policiesFromSchema(
     const columns = getTableColumns(value);
     const columnPolicies: ColumnPolicies = {};
 
-    for (const [_colKey, column] of Object.entries(columns)) {
+    for (const [propertyName, column] of Object.entries(columns)) {
       // Get CMS options from column config
       // deno-lint-ignore no-explicit-any
       const config = (column as any).config as
@@ -199,10 +199,9 @@ export function policiesFromSchema(
 
       // If any plugins are explicitly allowed to write, generate a write policy
       if (allowedSources.length > 0) {
-        // deno-lint-ignore no-explicit-any
-        const colName = (column as any).name as string;
-
-        columnPolicies[colName] = {
+        // Column policies are keyed by the Drizzle property name (the key in
+        // the table definition), matching evaluateColumnPolicies().
+        columnPolicies[propertyName] = {
           write: (ctx: PolicyContext) => isSourceAllowed(allowedSources, ctx),
         };
       }

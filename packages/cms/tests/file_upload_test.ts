@@ -146,7 +146,7 @@ function createMultipartRequest(formData: FormData): Request {
 
 // Mock file column
 const mockFileColumn: IntrospectedColumn = {
-  name: 'avatar',
+  dbName: 'avatar',
   propertyName: 'avatar',
   columnType: 'PgJsonb',
   dataType: 'json',

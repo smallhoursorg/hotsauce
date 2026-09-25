@@ -638,7 +638,9 @@ async function handlePluginRoute(
 
     // Extract column value and field info (from FILTERED record)
     if (column) {
-      const columnInfo = tableInfo.columns.find((c) => c.name === column);
+      const columnInfo = tableInfo.columns.find((c) =>
+        c.propertyName === column
+      );
       if (columnInfo) {
         // For mutating actions, check write permission; for reads, check read permission
         const isWrite = routeAction === 'update' || routeAction === 'delete';
@@ -649,7 +651,8 @@ async function handlePluginRoute(
         if (allowedColumns.includes(column)) {
           value = record[columnInfo.propertyName] as Serializable;
           field = {
-            name: columnInfo.name,
+            name: columnInfo.propertyName,
+            dbName: columnInfo.dbName,
             type: mapColumnToFieldType(columnInfo),
             config: (columnInfo.cmsOptions ?? {}) as Record<
               string,
@@ -1831,7 +1834,7 @@ async function handleFileServing(
     table.columns,
     policyCtx,
   );
-  if (!columnResult.readableColumns.includes(column.name)) {
+  if (!columnResult.readableColumns.includes(column.propertyName)) {
     // Return 404 (not 403) to avoid leaking existence of columns
     return notFound('Not found');
   }

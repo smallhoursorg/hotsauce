@@ -26,10 +26,8 @@ export interface ManyToManyDisplayData {
  * Column configuration for list view
  */
 export interface ListColumn {
-  /** Column key (property name for accessing record values) */
+  /** Column key: the Drizzle property name, used to read record values */
   key: string;
-  /** Column name (database column name for policy checks) */
-  name?: string;
   /** Display label */
   label: string;
   /** Format function for cell value */

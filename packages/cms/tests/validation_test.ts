@@ -229,7 +229,11 @@ Deno.test('validateFileColumnsAndConfigs: accepts file columns with json dataTyp
       {
         name: 'users',
         columns: [
-          { name: 'avatar', dataType: 'json', cmsOptions: { file: true } },
+          {
+            propertyName: 'avatar',
+            dataType: 'json',
+            cmsOptions: { file: true },
+          },
         ],
       },
     ],
@@ -245,7 +249,7 @@ Deno.test('validateFileColumnsAndConfigs: accepts file.previewSvg boolean on jso
         name: 'assets',
         columns: [
           {
-            name: 'icon',
+            propertyName: 'icon',
             dataType: 'json',
             cmsOptions: { file: { previewSvg: true } },
           },
@@ -264,7 +268,7 @@ Deno.test('validateFileColumnsAndConfigs: rejects non-boolean file.previewSvg', 
         name: 'assets',
         columns: [
           {
-            name: 'icon',
+            propertyName: 'icon',
             dataType: 'json',
             cmsOptions: {
               file: { previewSvg: 'yes' as unknown as boolean },
@@ -289,7 +293,7 @@ Deno.test('validateFileColumnsAndConfigs: accepts valid file.accept string', () 
         name: 'uploads',
         columns: [
           {
-            name: 'document',
+            propertyName: 'document',
             dataType: 'json',
             cmsOptions: { file: { accept: 'application/pdf,.doc,.docx' } },
           },
@@ -308,7 +312,7 @@ Deno.test('validateFileColumnsAndConfigs: rejects non-string file.accept', () =>
         name: 'uploads',
         columns: [
           {
-            name: 'document',
+            propertyName: 'document',
             dataType: 'json',
             cmsOptions: {
               file: { accept: ['image/*'] as unknown as string },
@@ -333,7 +337,7 @@ Deno.test('validateFileColumnsAndConfigs: accepts valid file.maxSize number', ()
         name: 'uploads',
         columns: [
           {
-            name: 'photo',
+            propertyName: 'photo',
             dataType: 'json',
             cmsOptions: { file: { maxSize: 5_000_000 } },
           },
@@ -352,7 +356,7 @@ Deno.test('validateFileColumnsAndConfigs: accepts file.maxSize of 0', () => {
         name: 'uploads',
         columns: [
           {
-            name: 'photo',
+            propertyName: 'photo',
             dataType: 'json',
             cmsOptions: { file: { maxSize: 0 } },
           },
@@ -371,7 +375,7 @@ Deno.test('validateFileColumnsAndConfigs: rejects non-number file.maxSize', () =
         name: 'uploads',
         columns: [
           {
-            name: 'document',
+            propertyName: 'document',
             dataType: 'json',
             cmsOptions: {
               file: { maxSize: '5MB' as unknown as number },
@@ -396,7 +400,7 @@ Deno.test('validateFileColumnsAndConfigs: rejects negative file.maxSize', () => 
         name: 'uploads',
         columns: [
           {
-            name: 'document',
+            propertyName: 'document',
             dataType: 'json',
             cmsOptions: { file: { maxSize: -100 } },
           },
@@ -418,8 +422,8 @@ Deno.test('validateFileColumnsAndConfigs: accepts tables without file columns', 
       {
         name: 'users',
         columns: [
-          { name: 'name', dataType: 'string' },
-          { name: 'email', dataType: 'string' },
+          { propertyName: 'name', dataType: 'string' },
+          { propertyName: 'email', dataType: 'string' },
         ],
       },
     ],
@@ -434,7 +438,11 @@ Deno.test('validateFileColumnsAndConfigs: rejects file column with string dataTy
       {
         name: 'users',
         columns: [
-          { name: 'avatar', dataType: 'string', cmsOptions: { file: true } },
+          {
+            propertyName: 'avatar',
+            dataType: 'string',
+            cmsOptions: { file: true },
+          },
         ],
       },
     ],
@@ -452,7 +460,11 @@ Deno.test('validateFileColumnsAndConfigs: rejects file column with number dataTy
       {
         name: 'posts',
         columns: [
-          { name: 'image', dataType: 'number', cmsOptions: { file: true } },
+          {
+            propertyName: 'image',
+            dataType: 'number',
+            cmsOptions: { file: true },
+          },
         ],
       },
     ],
@@ -470,13 +482,21 @@ Deno.test('validateFileColumnsAndConfigs: reports multiple errors', () => {
       {
         name: 'users',
         columns: [
-          { name: 'avatar', dataType: 'string', cmsOptions: { file: true } },
+          {
+            propertyName: 'avatar',
+            dataType: 'string',
+            cmsOptions: { file: true },
+          },
         ],
       },
       {
         name: 'posts',
         columns: [
-          { name: 'image', dataType: 'string', cmsOptions: { file: true } },
+          {
+            propertyName: 'image',
+            dataType: 'string',
+            cmsOptions: { file: true },
+          },
         ],
       },
     ],
@@ -634,9 +654,9 @@ Deno.test('validateThumbnailColumns: accepts table with single thumbnail column'
     tables: [{
       name: 'media',
       columns: [
-        { name: 'id' },
-        { name: 'file', cmsOptions: { thumbnail: true } },
-        { name: 'title' },
+        { propertyName: 'id' },
+        { propertyName: 'file', cmsOptions: { thumbnail: true } },
+        { propertyName: 'title' },
       ],
     }],
   };
@@ -648,9 +668,9 @@ Deno.test('validateThumbnailColumns: accepts table with no thumbnail columns', (
     tables: [{
       name: 'posts',
       columns: [
-        { name: 'id' },
-        { name: 'title' },
-        { name: 'body' },
+        { propertyName: 'id' },
+        { propertyName: 'title' },
+        { propertyName: 'body' },
       ],
     }],
   };
@@ -662,9 +682,9 @@ Deno.test('validateThumbnailColumns: rejects table with multiple thumbnail colum
     tables: [{
       name: 'media',
       columns: [
-        { name: 'id' },
-        { name: 'file', cmsOptions: { thumbnail: true } },
-        { name: 'preview', cmsOptions: { thumbnail: true } },
+        { propertyName: 'id' },
+        { propertyName: 'file', cmsOptions: { thumbnail: true } },
+        { propertyName: 'preview', cmsOptions: { thumbnail: true } },
       ],
     }],
   };
@@ -680,9 +700,9 @@ Deno.test('validateThumbnailColumns: reports column names in error', () => {
     tables: [{
       name: 'media',
       columns: [
-        { name: 'id' },
-        { name: 'file', cmsOptions: { thumbnail: true } },
-        { name: 'preview', cmsOptions: { thumbnail: true } },
+        { propertyName: 'id' },
+        { propertyName: 'file', cmsOptions: { thumbnail: true } },
+        { propertyName: 'preview', cmsOptions: { thumbnail: true } },
       ],
     }],
   };
@@ -703,15 +723,15 @@ Deno.test('validateThumbnailColumns: checks each table independently', () => {
       {
         name: 'media',
         columns: [
-          { name: 'id' },
-          { name: 'file', cmsOptions: { thumbnail: true } },
+          { propertyName: 'id' },
+          { propertyName: 'file', cmsOptions: { thumbnail: true } },
         ],
       },
       {
         name: 'gallery',
         columns: [
-          { name: 'id' },
-          { name: 'image', cmsOptions: { thumbnail: true } },
+          { propertyName: 'id' },
+          { propertyName: 'image', cmsOptions: { thumbnail: true } },
         ],
       },
     ],
@@ -729,14 +749,24 @@ Deno.test('validateAutoDraft: accepts table with all nullable columns', () => {
       name: 'media',
       cmsOptions: { autoDraft: true },
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: true, notNull: true },
         {
-          name: 'file',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: true,
+          notNull: true,
+        },
+        {
+          propertyName: 'file',
           isPrimaryKey: false,
           hasDefault: false,
           notNull: false,
         },
-        { name: 'alt', isPrimaryKey: false, hasDefault: false, notNull: false },
+        {
+          propertyName: 'alt',
+          isPrimaryKey: false,
+          hasDefault: false,
+          notNull: false,
+        },
       ],
     }],
   };
@@ -750,15 +780,20 @@ Deno.test('validateAutoDraft: accepts table with all columns having defaults', (
       name: 'uploads',
       cmsOptions: { autoDraft: true },
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: true, notNull: true },
         {
-          name: 'status',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: true,
+          notNull: true,
+        },
+        {
+          propertyName: 'status',
           isPrimaryKey: false,
           hasDefault: true,
           notNull: true,
         },
         {
-          name: 'created_at',
+          propertyName: 'created_at',
           isPrimaryKey: false,
           hasDefault: true,
           notNull: true,
@@ -775,15 +810,20 @@ Deno.test('validateAutoDraft: accepts table with mix of nullable and defaulted',
       name: 'posts',
       cmsOptions: { autoDraft: true },
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: true, notNull: true },
         {
-          name: 'title',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: true,
+          notNull: true,
+        },
+        {
+          propertyName: 'title',
           isPrimaryKey: false,
           hasDefault: false,
           notNull: false,
         },
         {
-          name: 'published',
+          propertyName: 'published',
           isPrimaryKey: false,
           hasDefault: true,
           notNull: true,
@@ -800,9 +840,14 @@ Deno.test('validateAutoDraft: rejects table with NOT NULL column without default
       name: 'posts',
       cmsOptions: { autoDraft: true },
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: true, notNull: true },
         {
-          name: 'title',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: true,
+          notNull: true,
+        },
+        {
+          propertyName: 'title',
           isPrimaryKey: false,
           hasDefault: false,
           notNull: true,
@@ -823,14 +868,24 @@ Deno.test('validateAutoDraft: reports multiple blocking columns', () => {
       name: 'posts',
       cmsOptions: { autoDraft: true },
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: true, notNull: true },
         {
-          name: 'title',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: true,
+          notNull: true,
+        },
+        {
+          propertyName: 'title',
           isPrimaryKey: false,
           hasDefault: false,
           notNull: true,
         },
-        { name: 'slug', isPrimaryKey: false, hasDefault: false, notNull: true },
+        {
+          propertyName: 'slug',
+          isPrimaryKey: false,
+          hasDefault: false,
+          notNull: true,
+        },
       ],
     }],
   };
@@ -848,9 +903,14 @@ Deno.test('validateAutoDraft: skips tables without autoDraft', () => {
     tables: [{
       name: 'posts',
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: true, notNull: true },
         {
-          name: 'title',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: true,
+          notNull: true,
+        },
+        {
+          propertyName: 'title',
           isPrimaryKey: false,
           hasDefault: false,
           notNull: true,
@@ -868,9 +928,14 @@ Deno.test('validateAutoDraft: rejects PK without default', () => {
       name: 'media',
       cmsOptions: { autoDraft: true },
       columns: [
-        { name: 'id', isPrimaryKey: true, hasDefault: false, notNull: true },
         {
-          name: 'file',
+          propertyName: 'id',
+          isPrimaryKey: true,
+          hasDefault: false,
+          notNull: true,
+        },
+        {
+          propertyName: 'file',
           isPrimaryKey: false,
           hasDefault: false,
           notNull: false,
@@ -905,9 +970,10 @@ function makeTable(
   return {
     name: 'test',
     primaryKey: columns.filter((c) => c.isPrimaryKey).map((c) => c.name),
-    columns: columns.map((c) => ({
-      ...c,
-      propertyName: c.name,
+    columns: columns.map(({ name, ...rest }) => ({
+      ...rest,
+      propertyName: name,
+      dbName: name,
       columnType: 'string',
       dataType: 'string',
       isUnique: false,

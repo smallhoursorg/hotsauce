@@ -12,7 +12,7 @@ const mockTable: IntrospectedTable = {
   name: 'users',
   columns: [
     {
-      name: 'id',
+      dbName: 'id',
       propertyName: 'id',
       columnType: 'PgSerial',
       dataType: 'number',
@@ -22,7 +22,7 @@ const mockTable: IntrospectedTable = {
       isUnique: false,
     },
     {
-      name: 'email',
+      dbName: 'email',
       propertyName: 'email',
       columnType: 'PgVarchar',
       dataType: 'string',
@@ -40,7 +40,7 @@ const mockPostsTable: IntrospectedTable = {
   name: 'posts',
   columns: [
     {
-      name: 'id',
+      dbName: 'id',
       propertyName: 'id',
       columnType: 'PgSerial',
       dataType: 'number',
@@ -50,7 +50,7 @@ const mockPostsTable: IntrospectedTable = {
       isUnique: false,
     },
     {
-      name: 'title',
+      dbName: 'title',
       propertyName: 'title',
       columnType: 'PgVarchar',
       dataType: 'string',
@@ -835,7 +835,7 @@ Deno.test('createCmsHandler: plugin returning fileUrl: undefined calls console.e
       name: 'content',
       columns: [
         {
-          name: 'id',
+          dbName: 'id',
           propertyName: 'id',
           columnType: 'PgSerial',
           dataType: 'number',
@@ -845,7 +845,7 @@ Deno.test('createCmsHandler: plugin returning fileUrl: undefined calls console.e
           isUnique: false,
         },
         {
-          name: 'body',
+          dbName: 'body',
           propertyName: 'body',
           columnType: 'PgJsonb',
           dataType: 'json',

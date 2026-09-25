@@ -19,7 +19,7 @@ const mockTables: IntrospectedTable[] = [
     name: 'users',
     columns: [
       {
-        name: 'id',
+        dbName: 'id',
         propertyName: 'id',
         columnType: 'PgSerial',
         dataType: 'number',
@@ -29,7 +29,7 @@ const mockTables: IntrospectedTable[] = [
         isUnique: false,
       },
       {
-        name: 'email',
+        dbName: 'email',
         propertyName: 'email',
         columnType: 'PgVarchar',
         dataType: 'string',
@@ -46,7 +46,7 @@ const mockTables: IntrospectedTable[] = [
     name: 'posts',
     columns: [
       {
-        name: 'id',
+        dbName: 'id',
         propertyName: 'id',
         columnType: 'PgSerial',
         dataType: 'number',
@@ -56,7 +56,7 @@ const mockTables: IntrospectedTable[] = [
         isUnique: false,
       },
       {
-        name: 'title',
+        dbName: 'title',
         propertyName: 'title',
         columnType: 'PgVarchar',
         dataType: 'string',

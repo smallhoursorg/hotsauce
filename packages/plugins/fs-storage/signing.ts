@@ -67,7 +67,7 @@ export interface UploadTokenPayload {
   kind: 'upload';
   /** Table name */
   table: string;
-  /** Column name */
+  /** Column, as its Drizzle property name */
   column: string;
   /** Record ID */
   recordId: string;

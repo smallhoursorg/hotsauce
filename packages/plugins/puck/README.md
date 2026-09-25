@@ -218,7 +218,7 @@ The picker stores a reference to the image record, not the image data itself:
 type SelectedImage = {
   id: string | number; // Primary key of the record
   table: string; // Table name (e.g., 'media', 'photos')
-  column: string; // File column name (e.g., 'file', 'image')
+  column: string; // File column property name (e.g., 'file', 'coverImage')
   alt?: string; // Alt text from the record (if available)
   filename?: string; // Original filename (for display and SEO-friendly URLs)
 };

@@ -22,7 +22,7 @@ export interface BucketResolveContext {
   user: { sub: string; role?: string; [key: string]: unknown } | null;
   /** Table being operated on */
   table: string;
-  /** Column being operated on */
+  /** Column being operated on, as its Drizzle property name (e.g. `coverImage`) */
   column: string;
   /** Action being performed */
   action: 'create' | 'update' | 'read' | 'delete';

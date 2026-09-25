@@ -60,6 +60,23 @@ export function propertyNameToLabel(propertyName: string): string {
     .trim();
 }
 
+const AUDIT_TIMESTAMP_NAMES = new Set([
+  'created_at',
+  'createdAt',
+  'updated_at',
+  'updatedAt',
+]);
+
+/**
+ * Whether a column is a conventional audit timestamp (`createdAt` /
+ * `updatedAt`, in either camelCase or snake_case form). These are treated as
+ * database-managed: read-only in forms and never written from user input.
+ */
+export function isAuditTimestampColumn(column: IntrospectedColumn): boolean {
+  return AUDIT_TIMESTAMP_NAMES.has(column.propertyName) ||
+    AUDIT_TIMESTAMP_NAMES.has(column.dbName);
+}
+
 /**
  * Map a Drizzle column type to a CMS field type
  */
@@ -176,7 +193,7 @@ export function mapColumnToField(column: IntrospectedColumn): CMSField {
   }
 
   // Common timestamp fields should be read-only
-  if (column.name === 'created_at' || column.name === 'updated_at') {
+  if (isAuditTimestampColumn(column)) {
     field.readOnly = true;
   }
 

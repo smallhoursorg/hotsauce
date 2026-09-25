@@ -167,6 +167,7 @@ export function validatePresignRequest(
  * Generate a unique object key for uploads.
  *
  * Format: {table}/{column}/{recordId}/{uuid}-{filename}
+ * (`column` is the Drizzle property name, as in every CMS URL.)
  *
  * Uses the shared prefix from core so the CMS download path's key re-validation
  * (`isValidFileKey`) accepts it. Every upload produces a globally unique key.

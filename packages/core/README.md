@@ -336,8 +336,8 @@ const result = insertSchema.safeParse(formData);
 
 ```ts
 interface IntrospectedColumn {
-  name: string; // Database column name (snake_case)
-  propertyName: string; // Drizzle property name (camelCase)
+  propertyName: string; // Drizzle property name, e.g. 'authorId' — the canonical identifier
+  dbName: string; // Database column name, e.g. 'author_id' — only for talking to the DB by name
   columnType: string; // e.g., 'PgVarchar', 'SQLiteInteger'
   dataType: string; // e.g., 'string', 'number', 'boolean'
   notNull: boolean;

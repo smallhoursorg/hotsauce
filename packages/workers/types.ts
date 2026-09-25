@@ -70,7 +70,8 @@ export interface PluginContext {
   };
   /**
    * Plugin-specific configuration for each column opted-in to this plugin.
-   * Keyed by column name, value is the config from `$cms({ plugins: { pluginName: config } })`.
+   * Keyed by column property name (the key in the Drizzle table definition),
+   * value is the config from `$cms({ plugins: { pluginName: config } })`.
    *
    * For **column-scoped plugins**: Contains only columns with this plugin declared.
    * For **table-scoped plugins**: Contains the table-level plugin config (keyed by special `_table` key).
@@ -142,8 +143,13 @@ export interface TransformHooks {
  * Contains only serializable properties from CMSField.
  */
 export interface UIFieldInfo {
-  /** Column name in the database */
+  /**
+   * Column identifier: the Drizzle property name (e.g. `coverImage`). This is
+   * the key used in records, form fields, policies and CMS URLs.
+   */
   name: string;
+  /** Column name in the database (e.g. `cover_img`); informational only */
+  dbName?: string;
   /** Display label for the field */
   label: string;
   /** CMS field type (text, number, select, json, file, etc.) */
@@ -383,8 +389,10 @@ export interface PluginRouteContext {
   value: Serializable;
   /** Field information (if column specified) */
   field?: {
-    /** Column name */
+    /** Column identifier: the Drizzle property name (see UIFieldInfo.name) */
     name: string;
+    /** Column name in the database; informational only */
+    dbName?: string;
     /** CMS field type (text, json, etc.) */
     type: string;
     /** Field config from $cms() hints */

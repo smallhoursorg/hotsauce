@@ -15,7 +15,7 @@ function createMockColumn(
   overrides: Partial<IntrospectedColumn>,
 ): IntrospectedColumn {
   return {
-    name: 'test_column',
+    dbName: 'test_column',
     propertyName: 'testColumn',
     dataType: 'string',
     columnType: 'PgVarchar',
@@ -190,7 +190,7 @@ Deno.test('mapColumnToFieldType: unknown dataType defaults to text', () => {
 // mapColumnToField tests
 Deno.test('mapColumnToField: creates CMSField with correct properties', () => {
   const column = createMockColumn({
-    name: 'first_name',
+    dbName: 'first_name',
     propertyName: 'firstName',
     dataType: 'string',
   });
@@ -206,7 +206,7 @@ Deno.test('mapColumnToField: creates CMSField with correct properties', () => {
 
 Deno.test('mapColumnToField: hides primary key fields', () => {
   const column = createMockColumn({
-    name: 'id',
+    dbName: 'id',
     propertyName: 'id',
     dataType: 'number',
     isPrimaryKey: true,
@@ -220,13 +220,13 @@ Deno.test('mapColumnToField: hides primary key fields', () => {
 
 Deno.test('mapColumnToField: marks timestamp fields as read-only', () => {
   const createdAt = createMockColumn({
-    name: 'created_at',
+    dbName: 'created_at',
     propertyName: 'createdAt',
     dataType: 'date',
   });
 
   const updatedAt = createMockColumn({
-    name: 'updated_at',
+    dbName: 'updated_at',
     propertyName: 'updatedAt',
     dataType: 'date',
   });

@@ -11,7 +11,7 @@ const mockTable: IntrospectedTable = {
   name: 'posts',
   columns: [
     {
-      name: 'id',
+      dbName: 'id',
       propertyName: 'id',
       columnType: 'PgSerial',
       dataType: 'number',
@@ -21,7 +21,7 @@ const mockTable: IntrospectedTable = {
       isUnique: false,
     },
     {
-      name: 'title',
+      dbName: 'title',
       propertyName: 'title',
       columnType: 'PgVarchar',
       dataType: 'string',

@@ -51,6 +51,7 @@ export {
 export type { CMSField, CMSFieldType } from './fields/mapping.ts';
 export {
   getThumbnailField,
+  isAuditTimestampColumn,
   mapColumnsToFields,
   mapColumnToField,
   mapColumnToFieldType,

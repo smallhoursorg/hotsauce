@@ -23,7 +23,7 @@ import type { CMSField, IntrospectedColumn } from '@hotsauce/core';
 // Helper to create mock CMSField
 function createMockField(overrides: Partial<CMSField> = {}): CMSField {
   const column: IntrospectedColumn = {
-    name: 'test_field',
+    dbName: 'test_field',
     propertyName: 'testField',
     dataType: 'string',
     columnType: 'PgVarchar',
@@ -154,7 +154,7 @@ Deno.test('selectInput: renders select with options', () => {
   const field = createMockField({
     fieldType: 'select',
     column: {
-      name: 'status',
+      dbName: 'status',
       propertyName: 'status',
       dataType: 'string',
       columnType: 'PgEnum',
@@ -178,7 +178,7 @@ Deno.test('selectInput: marks selected option', () => {
   const field = createMockField({
     fieldType: 'select',
     column: {
-      name: 'choice',
+      dbName: 'choice',
       propertyName: 'choice',
       dataType: 'string',
       columnType: 'PgEnum',
@@ -227,7 +227,7 @@ Deno.test('fileInput: uses nested file config options', () => {
   const field = createMockField({
     fieldType: 'file',
     column: {
-      name: 'avatar',
+      dbName: 'avatar',
       propertyName: 'avatar',
       dataType: 'json',
       columnType: 'PgJsonb',
@@ -253,7 +253,7 @@ Deno.test('fileInput: does not preview SVG by default', () => {
   const field = createMockField({
     fieldType: 'file',
     column: {
-      name: 'icon',
+      dbName: 'icon',
       propertyName: 'icon',
       dataType: 'json',
       columnType: 'PgJsonb',
@@ -282,7 +282,7 @@ Deno.test('fileInput: previews SVG when file.previewSvg is true', () => {
   const field = createMockField({
     fieldType: 'file',
     column: {
-      name: 'icon',
+      dbName: 'icon',
       propertyName: 'icon',
       dataType: 'json',
       columnType: 'PgJsonb',
@@ -354,7 +354,7 @@ Deno.test('relationInput: renders select element', () => {
   const field = createMockField({
     fieldType: 'relation',
     column: {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       dataType: 'number',
       columnType: 'PgInteger',
@@ -376,7 +376,7 @@ Deno.test('relationInput: shows placeholder with table name', () => {
   const field = createMockField({
     fieldType: 'relation',
     column: {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       dataType: 'number',
       columnType: 'PgInteger',
@@ -396,7 +396,7 @@ Deno.test('relationInput: renders options from relationOptions', () => {
   const field = createMockField({
     fieldType: 'relation',
     column: {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       dataType: 'number',
       columnType: 'PgInteger',
@@ -425,7 +425,7 @@ Deno.test('relationInput: marks selected option', () => {
   const field = createMockField({
     fieldType: 'relation',
     column: {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       dataType: 'number',
       columnType: 'PgInteger',
@@ -451,7 +451,7 @@ Deno.test('relationInput: adds required for notNull fields', () => {
   const field = createMockField({
     fieldType: 'relation',
     column: {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       dataType: 'number',
       columnType: 'PgInteger',
@@ -471,7 +471,7 @@ Deno.test('renderFieldInput: routes relation to relationInput', () => {
   const field = createMockField({
     fieldType: 'relation',
     column: {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       dataType: 'number',
       columnType: 'PgInteger',
@@ -628,7 +628,7 @@ Deno.test('fileInput: renders Delete button for an editable nullable file field'
   const field = createMockField({
     fieldType: 'file',
     column: {
-      name: 'avatar',
+      dbName: 'avatar',
       propertyName: 'avatar',
       dataType: 'json',
       columnType: 'PgJsonb',
@@ -652,7 +652,7 @@ Deno.test('fileInput: omits Delete button when the field is disabled', () => {
   const field = createMockField({
     fieldType: 'file',
     column: {
-      name: 'avatar',
+      dbName: 'avatar',
       propertyName: 'avatar',
       dataType: 'json',
       columnType: 'PgJsonb',

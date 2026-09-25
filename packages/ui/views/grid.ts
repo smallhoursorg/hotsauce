@@ -208,7 +208,7 @@ export function gridItems(
           class="cms-grid-item cms-grid-picker-item"
           data-picker-id="${thumb.id}"
           data-picker-table="${options.tableName ?? ''}"
-          data-picker-column="${options.thumbnailField.column.name}"
+          data-picker-column="${options.thumbnailField.column.propertyName}"
           data-picker-record="${JSON.stringify(thumb.record ?? {})}"
         >
           ${raw(thumbnailHtml)}

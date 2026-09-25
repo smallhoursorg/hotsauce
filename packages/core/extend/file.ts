@@ -22,6 +22,10 @@ export function isValidFileReference(value: unknown): value is FileReference {
  *
  * Format: {table}/{column}/{recordId}/
  *
+ * `column` is the Drizzle property name (e.g. `coverImage`), the same
+ * identifier the CMS uses in URLs, policies and plugin contexts — not the
+ * database column name.
+ *
  * @example
  * ```ts
  * const prefix = getFileKeyPrefix('posts', 'image', 42);

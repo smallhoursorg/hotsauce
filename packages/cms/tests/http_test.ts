@@ -177,7 +177,7 @@ Deno.test('coerceFormValues: converts form data based on column types', () => {
 
   const columns: IntrospectedColumn[] = [
     {
-      name: 'name',
+      dbName: 'name',
       propertyName: 'name',
       columnType: 'PgVarchar',
       dataType: 'string',
@@ -187,7 +187,7 @@ Deno.test('coerceFormValues: converts form data based on column types', () => {
       isUnique: false,
     },
     {
-      name: 'age',
+      dbName: 'age',
       propertyName: 'age',
       columnType: 'PgInteger',
       dataType: 'number',
@@ -197,7 +197,7 @@ Deno.test('coerceFormValues: converts form data based on column types', () => {
       isUnique: false,
     },
     {
-      name: 'active',
+      dbName: 'active',
       propertyName: 'active',
       columnType: 'PgBoolean',
       dataType: 'boolean',
@@ -222,7 +222,7 @@ Deno.test('coerceFormValues: handles nullable fields with empty values', () => {
 
   const columns: IntrospectedColumn[] = [
     {
-      name: 'bio',
+      dbName: 'bio',
       propertyName: 'bio',
       columnType: 'PgText',
       dataType: 'string',
@@ -245,7 +245,7 @@ Deno.test('coerceFormValues: handles array values', () => {
 
   const columns: IntrospectedColumn[] = [
     {
-      name: 'tags',
+      dbName: 'tags',
       propertyName: 'tags',
       columnType: 'PgVarchar',
       dataType: 'string',
@@ -274,7 +274,7 @@ Deno.test('coerceFormValues: hidden+checkbox boolean pattern', () => {
 
   const columns: IntrospectedColumn[] = [
     {
-      name: 'published',
+      dbName: 'published',
       propertyName: 'published',
       columnType: 'PgBoolean',
       dataType: 'boolean',
@@ -297,7 +297,7 @@ Deno.test('coerceFormValues: hidden+checkbox unchecked sends only false', () => 
 
   const columns: IntrospectedColumn[] = [
     {
-      name: 'published',
+      dbName: 'published',
       propertyName: 'published',
       columnType: 'PgBoolean',
       dataType: 'boolean',
@@ -321,7 +321,7 @@ Deno.test('coerceFormValues: uses propertyName for form lookup and output', () =
 
   const columns: IntrospectedColumn[] = [
     {
-      name: 'author_id',
+      dbName: 'author_id',
       propertyName: 'authorId',
       columnType: 'PgInteger',
       dataType: 'number',
@@ -331,7 +331,7 @@ Deno.test('coerceFormValues: uses propertyName for form lookup and output', () =
       isUnique: false,
     },
     {
-      name: 'created_at',
+      dbName: 'created_at',
       propertyName: 'createdAt',
       columnType: 'PgTimestamp',
       dataType: 'date',

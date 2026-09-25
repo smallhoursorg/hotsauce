@@ -144,8 +144,8 @@ function introspectColumn(
   foreignKeys: Map<string, { table: string; column: string }>,
 ): IntrospectedColumn {
   const result: IntrospectedColumn = {
-    name: column.name,
     propertyName,
+    dbName: column.name,
     columnType: column.columnType,
     dataType: column.dataType,
     notNull: column.notNull,
@@ -255,20 +255,19 @@ export function introspectTable(table: Table): IntrospectedTable {
 
     const column = introspectColumn(key, value, foreignKeys);
 
-    // Mark columns as primary if they're part of composite PK
-    if (compositePK.includes(column.name)) {
+    // Mark columns as primary if they are part of a composite PK. The extra
+    // config builder only exposes database names, so match on dbName here and
+    // record the property name like every other identifier the CMS uses.
+    if (compositePK.includes(column.dbName)) {
       column.isPrimaryKey = true;
     }
 
     columns.push(column);
 
     if (column.isPrimaryKey) {
-      primaryKeys.push(column.name);
+      primaryKeys.push(column.propertyName);
     }
   }
-
-  // Use composite PK if found, otherwise use column-level PKs
-  const finalPrimaryKey = compositePK.length > 0 ? compositePK : primaryKeys;
 
   // Extract table-level CMS options if present
   // deno-lint-ignore no-explicit-any
@@ -279,7 +278,7 @@ export function introspectTable(table: Table): IntrospectedTable {
   const result: IntrospectedTable = {
     name: tableName,
     columns,
-    primaryKey: finalPrimaryKey,
+    primaryKey: primaryKeys,
     table, // Reference to original Drizzle table for query building
   };
 
@@ -399,21 +398,25 @@ export function detectJunctionTables(
     const nonFkColumns = table.columns.filter((c) => !c.references);
     const allowedExtraColumns = [
       'created_at',
+      'createdAt',
       'updated_at',
+      'updatedAt',
       'order',
       'position',
       'sort_order',
+      'sortOrder',
       'id',
     ];
     const hasOnlyAllowedExtras = nonFkColumns.every((c) =>
-      allowedExtraColumns.includes(c.name) || c.isPrimaryKey
+      allowedExtraColumns.includes(c.propertyName) ||
+      allowedExtraColumns.includes(c.dbName) || c.isPrimaryKey
     );
 
     if (!hasOnlyAllowedExtras) continue;
 
     // Check if PKs match the FK columns (composite PK) or it's a simple junction
     const pkColumns = table.primaryKey;
-    const fkNames = [fk1.name, fk2.name];
+    const fkNames = [fk1.propertyName, fk2.propertyName];
     const isCompositePK = pkColumns.length === 2 &&
       pkColumns.every((pk) => fkNames.includes(pk));
     const hasSimplePK = pkColumns.length <= 1;
