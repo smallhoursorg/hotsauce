@@ -342,7 +342,9 @@ export interface PluginErrorContext {
     | 'ui:renderField'
     | 'ui:resolveFlashes'
     | 'action'
-    | 'route:render';
+    | 'route:render'
+    /** A Worker posted a message that is not a well-formed response */
+    | 'message';
   /** CRUD action (for action hooks) */
   action?: CrudAction;
   /** The hook context that was active when the error occurred (varies by operation) */
@@ -401,9 +403,23 @@ export class WorkerExecutor {
       throw new Error(`Worker already initialized for plugin: ${plugin.name}`);
     }
 
+    // A Worker instance is bound to exactly one plugin: its onmessage handler
+    // carries the plugin name, and responses are only accepted from the
+    // Worker a request was sent to. Sharing one instance between two plugin
+    // configs would make every reply to the first plugin look forged and
+    // time out, so fail fast here instead.
+    for (const [existingName, existingWorker] of this.workers) {
+      if (existingWorker === worker) {
+        throw new Error(
+          `Worker for plugin "${plugin.name}" is already registered for ` +
+            `plugin "${existingName}". Each plugin needs its own Worker instance.`,
+        );
+      }
+    }
+
     // Set up message handling
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      this.handleWorkerResponse(event.data);
+      this.handleWorkerResponse(plugin.name, event.data);
     };
 
     // SECURITY: Log Worker errors but don't expose details
@@ -1012,10 +1028,52 @@ export class WorkerExecutor {
    * but NOT propagated in the thrown error. This prevents plugins from
    * leaking credentials or sensitive data via error messages to end users.
    */
-  private handleWorkerResponse(response: WorkerResponse): void {
+  private handleWorkerResponse(
+    senderPluginName: string,
+    response: WorkerResponse,
+  ): void {
+    // A response must carry a string id and a boolean success flag before it
+    // is allowed anywhere near `pendingRequests`. Checking only the id would
+    // let `{ id, success: 'true' }` settle a request as successful and
+    // `{ id }` reject it. Malformed messages are reported, not just logged.
+    if (
+      !response || typeof response !== 'object' ||
+      typeof response.id !== 'string' ||
+      typeof response.success !== 'boolean'
+    ) {
+      this.onError?.(
+        new Error(
+          `Plugin "${senderPluginName}" posted a malformed Worker message`,
+        ),
+        { source: 'plugin', plugin: senderPluginName, operation: 'message' },
+      );
+      return;
+    }
+
     const pending = this.pendingRequests.get(response.id);
     if (!pending) {
       console.warn(`Received response for unknown request: ${response.id}`);
+      return;
+    }
+
+    // SECURITY: `pendingRequests` is shared by every Worker, and request ids
+    // are predictable. Without this check a malicious plugin could post a
+    // response carrying another plugin's request id and have its own payload
+    // accepted as that plugin's beforeSave/afterRead/route result. Only the
+    // Worker the request was sent to (context.plugin) may settle it; anything
+    // else is reported and ignored, and the real Worker's answer is awaited.
+    if (pending.context.plugin !== senderPluginName) {
+      this.onError?.(
+        new Error(
+          `Plugin "${senderPluginName}" attempted to answer a request ` +
+            `belonging to plugin "${pending.context.plugin}" (id: ${response.id})`,
+        ),
+        {
+          source: 'plugin',
+          plugin: senderPluginName,
+          operation: pending.context.operation,
+        },
+      );
       return;
     }
 

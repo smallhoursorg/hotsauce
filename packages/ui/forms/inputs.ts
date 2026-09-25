@@ -487,8 +487,11 @@ export function fileInput(
           .filename}" class="cms-file-preview" />
       `
       : '';
-    // Delete button - sets hidden field that signals file removal
-    const deleteButton = !field.column.notNull
+    // Delete button - sets hidden field that signals file removal.
+    // Not rendered for disabled (read-only) fields. Note the server only
+    // enforces this for columns excluded by column policy (writableColumns);
+    // `$cms({ readOnly: true })` is a UI-level hint, not a server guard.
+    const deleteButton = !field.column.notNull && !options.disabled
       ? html`
         <button
           type="submit"

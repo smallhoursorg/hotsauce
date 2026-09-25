@@ -939,3 +939,44 @@ Deno.test('createCmsHandler: plugin returning fileUrl: undefined calls console.e
     console.error = originalError;
   }
 });
+
+Deno.test('createCmsHandler: /files/ route is blocked when isAuthenticated returns false', async () => {
+  const handler = createCmsHandler({
+    csrfSecret: TEST_CSRF_SECRET,
+    auth: 'dangerously-open',
+    policies: 'dangerously-open',
+    schema: mockSchema,
+    db: mockDb,
+    basePath: '/admin',
+    isAuthenticated: () => false,
+  });
+
+  for (
+    const path of [
+      '/admin/files/users/avatar/1',
+      '/admin/files/users/avatar/1/photo.png',
+    ]
+  ) {
+    const response = await handler(new Request(`http://localhost${path}`));
+    assertEquals(response.status, 403, `${path} should be forbidden`);
+  }
+});
+
+Deno.test('createCmsHandler: /files/ route reaches file serving when isAuthenticated returns true', async () => {
+  const handler = createCmsHandler({
+    csrfSecret: TEST_CSRF_SECRET,
+    auth: 'dangerously-open',
+    policies: 'dangerously-open',
+    schema: mockSchema,
+    db: mockDb,
+    basePath: '/admin',
+    isAuthenticated: () => true,
+  });
+
+  // mockSchema has no file columns, so the handler gets past the auth gate
+  // and 404s on the column lookup rather than 403ing.
+  const response = await handler(
+    new Request('http://localhost/admin/files/users/avatar/1'),
+  );
+  assertEquals(response.status, 404);
+});

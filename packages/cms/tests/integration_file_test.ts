@@ -242,6 +242,64 @@ Deno.test('integration: file upload tests', async (t) => {
     assertEquals(profile?.avatar, null);
   });
 
+  await t.step(
+    'ignores _clear_ for a file column the user cannot write',
+    async () => {
+      await resetDb();
+
+      const base64Data = btoa(String.fromCharCode(...TEST_PNG_1X1_RED));
+      const original = {
+        filename: 'keep-me.png',
+        contentType: 'image/png',
+        size: TEST_PNG_1X1_RED.length,
+        data: base64Data,
+      };
+      await db.insert(profiles).values({
+        name: 'Read-only avatar',
+        avatar: original,
+      });
+
+      // avatar is readable but not writable for this user
+      const handler = createCmsHandler({
+        csrfSecret: TEST_CSRF_SECRET,
+        auth: 'dangerously-open',
+        policies: {
+          profiles: {
+            columns: {
+              avatar: { write: () => false },
+            },
+          },
+        },
+        db,
+        schema: schemaWithFiles,
+        basePath: '/admin',
+      });
+      const csrfToken = await generateCsrfToken(TEST_CSRF_SECRET);
+      const sourceToken = await generateSourceToken(
+        SOURCE.CMS,
+        TEST_CSRF_SECRET,
+      );
+
+      const formData = new FormData();
+      formData.append('__cms_csrf', csrfToken);
+      formData.append('__cms_source', sourceToken);
+      formData.append('name', 'Read-only avatar (renamed)');
+      formData.append('_clear_avatar', '1');
+
+      const response = await handler(
+        new Request('http://localhost/admin/profiles/1', {
+          method: 'POST',
+          body: formData,
+        }),
+      );
+      assertEquals(response.status, 303);
+
+      const [profile] = await db.select().from(profiles);
+      assertEquals(profile?.name, 'Read-only avatar (renamed)');
+      assertEquals(profile?.avatar, original, 'avatar must not be cleared');
+    },
+  );
+
   await t.step('rejects file exceeding maxSize', async () => {
     await resetDb();
 

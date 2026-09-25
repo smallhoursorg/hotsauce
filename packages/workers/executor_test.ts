@@ -1490,3 +1490,163 @@ Deno.test('WorkerExecutor: executeResolveFlashes runs in-process plugins', async
   assertEquals(result[0]?.message, 'first');
   assertEquals(result[1]?.message, 'inproc:dashboard');
 });
+
+// ─────────────────────────────────────────────────────────────
+// Response ownership: a Worker may only settle its own requests
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Minimal in-process stand-in for a Worker. Records what the executor posts
+ * to it and lets the test inject arbitrary messages back, including ones
+ * that carry another plugin's request id.
+ */
+class FakeWorker {
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
+  sent: Array<{ id: string; type: string; payload: unknown }> = [];
+  terminated = false;
+
+  postMessage(message: { id: string; type: string; payload: unknown }): void {
+    this.sent.push(message);
+    // Auto-acknowledge init so initPlugin() resolves.
+    if (message.type === 'init') {
+      this.reply({ id: message.id, success: true, result: null });
+    }
+  }
+
+  /** Deliver a message to the executor as if this Worker had posted it. */
+  reply(data: unknown): void {
+    this.onmessage?.({ data } as MessageEvent);
+  }
+
+  terminate(): void {
+    this.terminated = true;
+  }
+
+  asWorker(): Worker {
+    return this as unknown as Worker;
+  }
+}
+
+Deno.test('WorkerExecutor: rejects registering one Worker instance for two plugins', async () => {
+  const executor = new WorkerExecutor();
+  const shared = new FakeWorker();
+  const first = createRegisteredPlugin('first', shared.asWorker());
+  const second = createRegisteredPlugin('second', shared.asWorker());
+
+  try {
+    await executor.initPlugin(first);
+    await assertRejects(
+      () => executor.initPlugin(second),
+      Error,
+      'already registered for plugin "first"',
+    );
+  } finally {
+    executor.terminate();
+  }
+});
+
+Deno.test('WorkerExecutor: ignores a response posted by a different Worker than the request was sent to', async () => {
+  const errors: Array<{ error: Error; context: PluginErrorContext }> = [];
+  const executor = new WorkerExecutor((error, context) => {
+    errors.push({ error, context });
+  });
+  const attacker = new FakeWorker();
+  const victim = new FakeWorker();
+  const attackerPlugin = createRegisteredPlugin(
+    'attacker',
+    attacker.asWorker(),
+  );
+  const victimPlugin = createRegisteredPlugin('victim', victim.asWorker());
+
+  try {
+    await executor.initPlugin(attackerPlugin);
+    await executor.initPlugin(victimPlugin);
+
+    const ctx = { table: 'admin_users', action: 'update' as const };
+    const pending = executor.executeBeforeSave([victimPlugin], ctx, {
+      role: 'editor',
+    });
+
+    // The victim's Worker has now been sent a beforeSave request.
+    const request = victim.sent.find((m) => m.type === 'transform:beforeSave');
+    assert(request, 'victim should have received a beforeSave request');
+
+    // The attacker posts a forged response carrying the victim's request id.
+    attacker.reply({
+      id: request.id,
+      success: true,
+      result: { role: 'admin' },
+    });
+
+    // The forged message must be reported and must not settle the request.
+    assertEquals(errors.length, 1);
+    const forged = errors[0]!;
+    assertEquals(forged.context.plugin, 'attacker');
+    assertEquals(forged.context.operation, 'transform:beforeSave');
+    assert(forged.error.message.includes('belonging to plugin "victim"'));
+
+    // The genuine Worker still answers, and its answer is the one used.
+    victim.reply({
+      id: request.id,
+      success: true,
+      result: { role: 'editor', touched: true },
+    });
+    const result = await pending;
+    assertEquals(result, { role: 'editor', touched: true });
+  } finally {
+    executor.terminate();
+  }
+});
+
+Deno.test('WorkerExecutor: ignores malformed Worker messages and keeps the request pending', async () => {
+  const errors: Array<{ error: Error; context: PluginErrorContext }> = [];
+  const executor = new WorkerExecutor((error, context) => {
+    errors.push({ error, context });
+  });
+  const worker = new FakeWorker();
+  const plugin = createRegisteredPlugin('echo', worker.asWorker());
+
+  try {
+    await executor.initPlugin(plugin);
+
+    const ctx = { table: 'test', action: 'create' as const };
+    let settled = false;
+    const pending = executor
+      .executeBeforeSave([plugin], ctx, { marker: 'x' })
+      .finally(() => {
+        settled = true;
+      });
+    const request = worker.sent.find((m) => m.type === 'transform:beforeSave');
+    assert(request, 'worker should have received a beforeSave request');
+
+    // Garbage of every shape: none may throw, settle the request, or be
+    // silently dropped (each is reported through onError). The last three
+    // carry the real request id, so only the `success` check stops them.
+    const garbage = [
+      null,
+      'string',
+      { success: true },
+      { id: 42, success: true },
+      { id: request.id, success: 'true', result: { marker: 'forged' } },
+      { id: request.id, success: 1 },
+      { id: request.id },
+    ];
+    for (const message of garbage) {
+      worker.reply(message);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assertEquals(settled, false, 'malformed messages must not settle');
+    assertEquals(errors.length, garbage.length);
+    for (const { context } of errors) {
+      assertEquals(context.plugin, 'echo');
+      assertEquals(context.operation, 'message');
+    }
+
+    // A well-formed reply still works afterwards.
+    worker.reply({ id: request.id, success: true, result: { marker: 'y' } });
+    assertEquals(await pending, { marker: 'y' });
+  } finally {
+    executor.terminate();
+  }
+});

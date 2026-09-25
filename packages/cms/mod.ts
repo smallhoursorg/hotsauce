@@ -1491,6 +1491,19 @@ export function createCmsHandler(options: CmsOptions): Handler {
     // Regular CMS routes
     // ─────────────────────────────────────────────────────────────
 
+    // Every route below this point requires an authenticated caller. With
+    // built-in auth the JWT check above already redirected or 401'd; with a
+    // custom `isAuthenticated` callback this is the single gate. Keeping it
+    // here (rather than per route family) means a new route cannot be added
+    // below without inheriting it, and unauthenticated callers cannot probe
+    // which tables or routes exist via 404/405 differences.
+    if (!resolvedAuth) {
+      const authenticated = await opts.isAuthenticated(request);
+      if (!authenticated) {
+        return forbidden('Authentication required');
+      }
+    }
+
     // Handle file serving at {basePath}/files/{table}/{column}/{id}[/{filename}]
     // Optional filename at end is ignored (for SEO-friendly URLs)
     const filesPrefix = `${opts.basePath}/files/`;
@@ -1533,14 +1546,6 @@ export function createCmsHandler(options: CmsOptions): Handler {
       );
 
       if (pluginRouteMatch) {
-        // Auth check for plugin routes (same as built-in routes)
-        if (!resolvedAuth) {
-          const authenticated = await opts.isAuthenticated(request);
-          if (!authenticated) {
-            return forbidden('Authentication required');
-          }
-        }
-
         // Authorization check - if plugin route references a table, check row policy
         // (canAccess was removed - use policies for table-level authorization)
         const pluginTable = pluginRouteMatch.params.table;
@@ -1622,14 +1627,6 @@ export function createCmsHandler(options: CmsOptions): Handler {
 
     if (!action) {
       return methodNotAllowed(['GET', 'POST']);
-    }
-
-    // Check authentication (only if auth is not configured - auth handles it above)
-    if (!resolvedAuth) {
-      const authenticated = await opts.isAuthenticated(request);
-      if (!authenticated) {
-        return forbidden('Authentication required');
-      }
     }
 
     // Check authorization for table actions via row policy
