@@ -100,8 +100,8 @@ export interface ColumnPolicy {
    *
    * @example
    * ```ts
-   * // Auto-fill tenant_id from user's JWT claim
-   * tenant_id: {
+   * // Auto-fill tenantId from user's JWT claim
+   * tenantId: {
    *   read: () => false,
    *   default: (ctx) => ctx.user?.tenantId,
    * }
@@ -111,12 +111,14 @@ export interface ColumnPolicy {
 }
 
 /**
- * Column policies keyed by column name
+ * Column policies keyed by the Drizzle property name (the key in the table
+ * definition, e.g. `passwordHash`), never the database column name
+ * (`password_hash`). A policy keyed by the DB name silently matches nothing.
  *
  * @example
  * ```ts
  * const userColumns: ColumnPolicies = {
- *   password_hash: { read: () => false },
+ *   passwordHash: { read: () => false },
  *   ssn: { read: () => false },
  *   salary: { read: (ctx) => ctx.user?.role === 'admin' },
  * };

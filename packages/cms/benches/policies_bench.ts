@@ -28,7 +28,7 @@ Deno.bench('createPolicyContext', () => {
 const columns = usersInfo.columns;
 const readable = columns
   .filter((c) => c.propertyName !== 'email')
-  .map((c) => c.name);
+  .map((c) => c.propertyName);
 
 function makeRecords(count: number): Record<string, unknown>[] {
   return Array.from({ length: count }, (_, i) =>

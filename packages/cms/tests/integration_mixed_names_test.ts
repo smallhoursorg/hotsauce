@@ -22,6 +22,7 @@ import {
   pgTable,
   primaryKey,
   serial,
+  timestamp,
   varchar,
 } from 'drizzle-orm/pg-core';
 import '@hotsauce/core/extend';
@@ -58,6 +59,8 @@ const articles = pgTable('blog_articles', {
     thumbnail: true,
     plugins: { puck: { role: 'source' } },
   }),
+  // Audit timestamp recognised by property name only (DB name is unconventional)
+  createdAt: timestamp('creation_ts').notNull().defaultNow(),
 });
 
 const articleTags = pgTable('blog_article_tags', {
@@ -89,7 +92,8 @@ async function createTables(db: ReturnType<typeof drizzle>) {
       article_pk SERIAL PRIMARY KEY,
       headline_text VARCHAR(200) NOT NULL,
       author_ref INTEGER NOT NULL REFERENCES blog_authors(author_pk),
-      cover_img JSON
+      cover_img JSON,
+      creation_ts TIMESTAMP NOT NULL DEFAULT NOW()
     )
   `);
   await db.execute(sql`
@@ -226,6 +230,10 @@ Deno.test('integration: columns whose DB name differs from property name', async
     assertEquals(response.status, 200);
     const html = await response.text();
     assertStringIncludes(html, 'name="authorId"');
+    // Audit timestamp is recognised by property name and never user-editable
+    if (/name="createdAt"(?![^>]*disabled)/.test(html)) {
+      throw new Error('createdAt rendered as an editable input');
+    }
     assertStringIncludes(html, 'Ada Lovelace');
     assertStringIncludes(html, 'value="1"');
     if (html.includes('value="undefined"') || html.includes('>undefined<')) {
@@ -406,6 +414,23 @@ Deno.test('integration: columns whose DB name differs from property name', async
       const html = await response.text();
       if (html.includes('Top secret')) {
         throw new Error('column policy keyed by property name was not applied');
+      }
+
+      // A hidden column cannot be used as a sort key either: that would leak
+      // its relative values through row order.
+      await db.insert(articles).values({ headline: 'Aardvark', authorId: 2 });
+      const sorted = await handler(
+        new Request(
+          'http://localhost/admin/blog_articles?view=table&sort=headline',
+        ),
+      );
+      const sortedHtml = await sorted.text();
+      // Insertion order (Ada's row, then Grace's) must be preserved;
+      // ascending headline would put Grace's 'Aardvark' row first.
+      if (
+        sortedHtml.indexOf('Grace Hopper') < sortedHtml.indexOf('Ada Lovelace')
+      ) {
+        throw new Error('sort on a policy-hidden column was applied');
       }
     },
   );

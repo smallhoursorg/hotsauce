@@ -653,8 +653,9 @@ export async function handleList(ctx: RouteContext): Promise<Response> {
 
   // Get pagination and sort
   const { page, limit, offset } = getPagination(url);
-  const columnNames = table.columns.map((c) => c.propertyName);
-  const sortInfo = getSort(url, columnNames);
+  // Only readable columns may be sorted on: ordering by a policy-hidden
+  // column would leak its relative values even though it is never rendered.
+  const sortInfo = getSort(url, columnResult.readableColumns);
 
   // Count total records (with policy filter)
   let countQuery = options.db

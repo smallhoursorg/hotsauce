@@ -50,14 +50,17 @@ export interface CMSField {
 }
 
 /**
- * Convert property name to human-readable label
- * e.g., "authorId" -> "Author Id", "createdAt" -> "Created At"
+ * Convert a property name to a human-readable label. Handles camelCase and
+ * snake_case, since property names may follow either convention.
+ * e.g., "authorId" -> "Author Id", "created_at" -> "Created At"
  */
 export function propertyNameToLabel(propertyName: string): string {
   return propertyName
+    .replace(/_+/g, ' ')
     .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (s) => s.toUpperCase())
-    .trim();
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/(^|\s)\S/g, (s) => s.toUpperCase());
 }
 
 const AUDIT_TIMESTAMP_NAMES = new Set([

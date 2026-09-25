@@ -438,18 +438,18 @@ export async function evaluateColumnPolicies(
  * Used to strip hidden columns from query results before sending to UI.
  * This ensures sensitive data never leaves the handler layer.
  *
- * @param record - Full record from database (with camelCase properties from Drizzle)
- * @param readableColumns - Column names (snake_case DB column names)
- * @param columns - Column metadata to map column names to property names
+ * @param record - Full record from database (keyed by Drizzle property name)
+ * @param readableColumns - Readable columns, as property names
+ * @param columns - Column metadata; entries not in it are ignored
  * @returns Record with only readable columns
  *
  * @example
  * ```ts
  * const fullRecord = { id: 1, userName: 'John', salary: 100000, ssn: '123-45-6789' };
  * const columns = [
- *   { name: 'id', propertyName: 'id' },
- *   { name: 'user_name', propertyName: 'userName' },
- *   { name: 'salary', propertyName: 'salary' },
+ *   { dbName: 'id', propertyName: 'id' },
+ *   { dbName: 'user_name', propertyName: 'userName' },
+ *   { dbName: 'salary', propertyName: 'salary' },
  *   { name: 'ssn', propertyName: 'ssn' },
  * ];
  * const filtered = filterRecordColumns(fullRecord, ['id', 'userName'], columns);

@@ -18,6 +18,7 @@ import type {
 } from './types.ts';
 
 import type { CmsColumnOptions, CmsTableOptions } from '../extend/types.ts';
+import { isAuditTimestampColumn } from '../fields/mapping.ts';
 import { CMS_TABLE_OPTIONS } from '../extend/types.ts';
 
 /** Symbols used by Drizzle to store inline foreign keys (database-specific, no helper exported) */
@@ -397,10 +398,6 @@ export function detectJunctionTables(
     // Allow: FKs + timestamps (created_at, updated_at) + maybe an order column
     const nonFkColumns = table.columns.filter((c) => !c.references);
     const allowedExtraColumns = [
-      'created_at',
-      'createdAt',
-      'updated_at',
-      'updatedAt',
       'order',
       'position',
       'sort_order',
@@ -408,6 +405,7 @@ export function detectJunctionTables(
       'id',
     ];
     const hasOnlyAllowedExtras = nonFkColumns.every((c) =>
+      isAuditTimestampColumn(c) ||
       allowedExtraColumns.includes(c.propertyName) ||
       allowedExtraColumns.includes(c.dbName) || c.isPrimaryKey
     );

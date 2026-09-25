@@ -338,6 +338,11 @@ const result = insertSchema.safeParse(formData);
 interface IntrospectedColumn {
   propertyName: string; // Drizzle property name, e.g. 'authorId' — the canonical identifier
   dbName: string; // Database column name, e.g. 'author_id' — only for talking to the DB by name
+  // Migration: `name` was renamed to `dbName`. Anywhere you indexed a record or
+  // a Drizzle table object with `column.name`, use `column.propertyName`.
+  // `IntrospectedTable.primaryKey`, `readableColumns`/`writableColumns` from
+  // column policies, plugin `field.name`, storage `column` callbacks and file
+  // URLs all carry the property name now.
   columnType: string; // e.g., 'PgVarchar', 'SQLiteInteger'
   dataType: string; // e.g., 'string', 'number', 'boolean'
   notNull: boolean;
@@ -356,9 +361,9 @@ interface IntrospectedColumn {
 
 ```ts
 interface IntrospectedTable {
-  name: string;
+  name: string; // Database table name
   columns: IntrospectedColumn[];
-  primaryKey: string[];
+  primaryKey: string[]; // Primary key column(s), as property names, in column order
   table: unknown; // Original Drizzle table reference
   isJunction?: boolean; // True for many-to-many link tables
   cmsOptions?: CmsTableOptions; // Optional CMS metadata from table $cms()
