@@ -26,7 +26,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        drizzle-version: ['0.44.0', '0.44.1', '0.45.0', '0.45.1', '0.45.2']
+        drizzle-version: [
+          '0.44.0',
+          '0.44.1',
+          '0.45.0',
+          '0.45.1',
+          '0.45.2',
+          '0.45.3',
+        ]
 
     steps:
       - name: Checkout
@@ -115,6 +122,10 @@ jobs:
   check-new-release:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
+    # The default GITHUB_TOKEN is read-only; creating the alert issue needs issues:write
+    permissions:
+      contents: read
+      issues: write
 
     steps:
       - name: Checkout
