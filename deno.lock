@@ -13,8 +13,8 @@
     "npm:@puckeditor/core@latest": "0.21.1_react@19.2.4_react-dom@19.2.4__react@19.2.4",
     "npm:@types/node@*": "24.2.0",
     "npm:drizzle-orm@0.45.1": "0.45.1_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0",
-    "npm:drizzle-orm@~0.45.1": "0.45.1_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0",
-    "npm:drizzle-zod@~0.8.3": "0.8.3_drizzle-orm@0.45.1__@electric-sql+pglite@0.3.15__postgres@3.4.8__sql.js@1.13.0_zod@4.3.6_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0",
+    "npm:drizzle-orm@~0.45.4": "0.45.4_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0",
+    "npm:drizzle-zod@~0.8.3": "0.8.3_drizzle-orm@0.45.4__@electric-sql+pglite@0.3.15__postgres@3.4.8__sql.js@1.13.0_zod@4.3.6_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0",
     "npm:micromark-extension-gfm@3": "3.0.0",
     "npm:micromark@*": "4.0.2",
     "npm:micromark@4": "4.0.2",
@@ -925,10 +925,23 @@
         "sql.js"
       ]
     },
-    "drizzle-zod@0.8.3_drizzle-orm@0.45.1__@electric-sql+pglite@0.3.15__postgres@3.4.8__sql.js@1.13.0_zod@4.3.6_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0": {
+    "drizzle-orm@0.45.4_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0": {
+      "integrity": "sha512-NiM1YZpJ2UxyeE67DpDDZ+Tsw4YLX3trSlkNT7Tm9eKoUNb1LvaAaQzXgYQsWs+AQ9TUmmwMmBOCXuqqxUWKKQ==",
+      "dependencies": [
+        "@electric-sql/pglite",
+        "postgres",
+        "sql.js"
+      ],
+      "optionalPeers": [
+        "@electric-sql/pglite",
+        "postgres",
+        "sql.js"
+      ]
+    },
+    "drizzle-zod@0.8.3_drizzle-orm@0.45.4__@electric-sql+pglite@0.3.15__postgres@3.4.8__sql.js@1.13.0_zod@4.3.6_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0": {
       "integrity": "sha512-66yVOuvGhKJnTdiqj1/Xaaz9/qzOdRJADpDa68enqS6g3t0kpNkwNYjUuaeXgZfO/UWuIM9HIhSlJ6C5ZraMww==",
       "dependencies": [
-        "drizzle-orm",
+        "drizzle-orm@0.45.4_@electric-sql+pglite@0.3.15_postgres@3.4.8_sql.js@1.13.0",
         "zod"
       ]
     },
@@ -1632,6 +1645,7 @@
     },
     "uuid@9.0.1": {
       "integrity": "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==",
+      "deprecated": true,
       "bin": true
     },
     "vite@7.3.1_@types+node@24.2.0_picomatch@4.0.3": {
@@ -1680,7 +1694,7 @@
       "jsr:@std/assert@1.0.18",
       "jsr:@std/media-types@^1.1.0",
       "npm:@electric-sql/pglite@~0.3.15",
-      "npm:drizzle-orm@~0.45.1",
+      "npm:drizzle-orm@~0.45.4",
       "npm:drizzle-zod@~0.8.3",
       "npm:postgres@^3.4.8",
       "npm:qrcode-generator@^2.0.4",
